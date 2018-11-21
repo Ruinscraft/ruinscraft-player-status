@@ -1,7 +1,5 @@
 package com.ruinscraft.playerstatus;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -11,21 +9,34 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 
 public final class PlayerStatusAPI implements PluginMessageListener {
 
+	private static final long REFRESH_PERIOD_TICKS = 30L;
+
 	private final JavaPlugin plugin;
 
+	private Multimap<String, String> listCache;
 	private BlockingQueue<PlayerStatus> playerStatusQueue;
-	private BlockingQueue<List<String>> onlineListQueue;
+	private BlockingQueue<Multimap<String, String>> onlineListQueue;
 
 	public PlayerStatusAPI(JavaPlugin plugin) {
 		this.plugin = plugin;
 		playerStatusQueue = new ArrayBlockingQueue<>(64);
 		onlineListQueue = new ArrayBlockingQueue<>(64);
+
+		plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+			try {
+				listCache = getOnlineForce();
+			} catch (Exception e) {
+				return; // no players online to send the plugin message
+			}
+		}, 5L, REFRESH_PERIOD_TICKS);
 	}
 
 	public void cleanup() {
@@ -48,15 +59,20 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 		throw new Exception("No player to send plugin message");
 	}
 
-	public List<String> getOnline() throws Exception {
+	public Multimap<String, String> getOnline() {
+		return listCache == null ? listCache = HashMultimap.create() : listCache;
+	}
+
+	public synchronized Multimap<String, String> getOnlineForce() throws Exception {
 		ByteArrayDataOutput out = ByteStreams.newDataOutput();
-		out.writeUTF("PlayerList");
-		out.writeUTF("ALL");
+		out.writeUTF("ServerPlayers");
+		out.writeUTF("PLAYERS");
 
 		Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
 
 		if (player.isPresent()) {
 			player.get().sendPluginMessage(plugin, "RedisBungee", out.toByteArray());
+			/* Blocking (wait for the message to come back from the proxy) */
 			return onlineListQueue.take();
 		}
 
@@ -92,20 +108,19 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 			}
 
 			break;
-		case "PlayerList":
+		case "ServerPlayers":
 			/*
 			 * 	https://github.com/minecrafter/RedisBungee/wiki/API#plugin-messaging-bukkit
 			 * 
 			 * 	CSV of player names, no spaces
 			 * 	Eg: "Notch,Dinnerbone,md_5"
 			 */
+
+			// TODO: figure out how to deserialize a multimap
+
 			String csv = in.readUTF();
 
-			try {
-				onlineListQueue.put(Arrays.asList(csv.split(",")));
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			//onlineListQueue.put(Arrays.asList(csv.split(",")));
 
 			break;
 		}
