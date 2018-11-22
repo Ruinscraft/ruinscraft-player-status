@@ -1,5 +1,7 @@
 package com.ruinscraft.playerstatus;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -8,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.scheduler.BukkitScheduler;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -15,37 +18,27 @@ import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 
-public final class PlayerStatusAPI implements PluginMessageListener {
+public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseable {
 
 	private static final String MESSAGING_CHANNEL = "RedisBungee";
 	private static final long REFRESH_PERIOD_TICKS = 50L;
+	private static final JavaPlugin plugin = PlayerStatusPlugin.getInstance();
 
-	private final JavaPlugin plugin;
-
+	/* Multimap<String, String> <=> Map<String, List<String>>*/
 	private Multimap<String, String> listCache;
 	private BlockingQueue<PlayerStatus> playerStatusQueue;
 	private BlockingQueue<Multimap<String, String>> onlineListQueue;
 
-	public PlayerStatusAPI(JavaPlugin plugin) {
-		this.plugin = plugin;
+	public PlayerStatusAPI() {
 		this.playerStatusQueue = new ArrayBlockingQueue<>(64);
 		this.onlineListQueue = new ArrayBlockingQueue<>(64);
 
-		plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-			try {
-				listCache = getOnlineForce();
-			} catch (NoOnlinePlayerException e) {
-				return;
-			}
-		}, 5L, REFRESH_PERIOD_TICKS);
+		BukkitScheduler sch = plugin.getServer().getScheduler();
+		
+		sch.runTaskTimerAsynchronously(plugin, () -> listCache = getOnlineForce(), 5L, REFRESH_PERIOD_TICKS);
 	}
 
-	public void cleanup() {
-		playerStatusQueue.clear();
-		onlineListQueue.clear();
-	}
-
-	public PlayerStatus getPlayerStatus(String username) throws NoOnlinePlayerException {
+	public PlayerStatus getPlayerStatus(String username) {
 		ByteArrayDataOutput out = ByteStreams.newDataOutput();
 		out.writeUTF("LastOnline");
 		out.writeUTF(username);
@@ -54,39 +47,39 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 
 		if (player.isPresent()) {
 			player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
-			
+
 			try {
 				return playerStatusQueue.take();
 			} catch (InterruptedException e) {
-				return null;
+				e.printStackTrace();
 			}
 		}
-
-		throw new NoOnlinePlayerException();
+		
+		return new InvalidPlayerStatus();
 	}
 
-	public Multimap<String, String> getOnlineForce() throws NoOnlinePlayerException {
+	public Multimap<String, String> getOnlineForce() {
 		ByteArrayDataOutput out = ByteStreams.newDataOutput();
 		out.writeUTF("ServerPlayers");
 		out.writeUTF("PLAYERS");
 
 		Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
-		
+
 		if (player.isPresent()) {
 			player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
-			
+
 			try {
 				return onlineListQueue.take();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
-		
-		throw new NoOnlinePlayerException();
-	}
-	
-	public Multimap<String, String> getOnline() {
+
 		return listCache == null ? listCache = HashMultimap.create() : listCache;
+	}
+
+	public Multimap<String, String> getOnline() {
+		return listCache;
 	}
 
 	@Override
@@ -94,12 +87,12 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 		if (!channel.equals(MESSAGING_CHANNEL)) {
 			return;
 		}
-		
+
 		ByteArrayDataInput in = ByteStreams.newDataInput(message);
 
 		String command = in.readUTF();
 		String argument = in.readUTF();
-		
+
 		switch (command) {
 		case "LastOnline":
 			/*	
@@ -119,11 +112,40 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 
 			break;
 		case "ServerPlayers":
+			Multimap<String, String> allPlayers = HashMultimap.create();
+			
+			int serverCount = in.readInt();
 
-			// TODO: deserialize map of players
+			do {
+				String serverName = in.readUTF();
+				int serverPlayerCount = in.readInt();
+
+				Collection<String> serverPlayers = new ArrayList<>();
+				
+				for (int i = 0; i < serverPlayerCount; i++) {
+					String playerName = in.readUTF();
+					serverPlayers.add(playerName);
+				}
+
+				allPlayers.putAll(serverName, serverPlayers);
+				
+			} while (--serverCount > 0);
+			
+			try {
+				onlineListQueue.put(allPlayers);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			
 			break;
 		}
+	}
+
+	@Override
+	public void close() throws Exception {
+		listCache.clear();
+		playerStatusQueue.clear();
+		onlineListQueue.clear();
 	}
 
 }

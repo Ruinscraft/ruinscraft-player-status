@@ -1,6 +1,6 @@
 package com.ruinscraft.playerstatus;
 
-public final class PlayerStatus {
+public class PlayerStatus {
 
 	public final String username;
 	public final long lastSeen;
