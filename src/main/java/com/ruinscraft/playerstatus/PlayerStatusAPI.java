@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -35,47 +36,63 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
 		BukkitScheduler sch = plugin.getServer().getScheduler();
 		
-		sch.runTaskTimerAsynchronously(plugin, () -> listCache = getOnlineForce(), 5L, REFRESH_PERIOD_TICKS);
-	}
-
-	public PlayerStatus getPlayerStatus(String username) {
-		ByteArrayDataOutput out = ByteStreams.newDataOutput();
-		out.writeUTF("LastOnline");
-		out.writeUTF(username);
-
-		Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
-
-		if (player.isPresent()) {
-			player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
-
+		sch.runTaskTimerAsynchronously(plugin, () -> {
 			try {
-				return playerStatusQueue.take();
-			} catch (InterruptedException e) {
+				listCache = getOnlineForce().call();
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		}
-		
-		return new InvalidPlayerStatus();
+		}, 5L, REFRESH_PERIOD_TICKS);
 	}
 
-	public Multimap<String, String> getOnlineForce() {
-		ByteArrayDataOutput out = ByteStreams.newDataOutput();
-		out.writeUTF("ServerPlayers");
-		out.writeUTF("PLAYERS");
+	public Callable<PlayerStatus> getPlayerStatus(String username) {
+		return new Callable<PlayerStatus>() {
+			@Override
+			public PlayerStatus call() throws Exception {
+				ByteArrayDataOutput out = ByteStreams.newDataOutput();
+				out.writeUTF("LastOnline");
+				out.writeUTF(username);
 
-		Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
+				Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
 
-		if (player.isPresent()) {
-			player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
+				if (player.isPresent()) {
+					player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
 
-			try {
-				return onlineListQueue.take();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+					try {
+						return playerStatusQueue.take();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				
+				return new InvalidPlayerStatus();
 			}
-		}
+		};
+	}
 
-		return listCache == null ? listCache = HashMultimap.create() : listCache;
+	public Callable<Multimap<String, String>> getOnlineForce() {
+		return new Callable<Multimap<String, String>>() {
+			@Override
+			public Multimap<String, String> call() throws Exception {
+				ByteArrayDataOutput out = ByteStreams.newDataOutput();
+				out.writeUTF("ServerPlayers");
+				out.writeUTF("PLAYERS");
+
+				Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
+
+				if (player.isPresent()) {
+					player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
+
+					try {
+						return onlineListQueue.take();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+
+				return listCache == null ? listCache = HashMultimap.create() : listCache;
+			}
+		};
 	}
 
 	public Multimap<String, String> getOnline() {
