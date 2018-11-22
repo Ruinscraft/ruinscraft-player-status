@@ -8,7 +8,8 @@ public class ListCommand implements CommandExecutor {
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-		// TODO: send list
+
+		PlayerStatusPlugin.getAPI().getOnline();
 		
 		return true;
 	}

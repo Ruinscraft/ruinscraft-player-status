@@ -17,7 +17,8 @@ import com.google.common.io.ByteStreams;
 
 public final class PlayerStatusAPI implements PluginMessageListener {
 
-	private static final long REFRESH_PERIOD_TICKS = 30L;
+	private static final String MESSAGING_CHANNEL = "RedisBungee";
+	private static final long REFRESH_PERIOD_TICKS = 50L;
 
 	private final JavaPlugin plugin;
 
@@ -27,14 +28,14 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 
 	public PlayerStatusAPI(JavaPlugin plugin) {
 		this.plugin = plugin;
-		playerStatusQueue = new ArrayBlockingQueue<>(64);
-		onlineListQueue = new ArrayBlockingQueue<>(64);
+		this.playerStatusQueue = new ArrayBlockingQueue<>(64);
+		this.onlineListQueue = new ArrayBlockingQueue<>(64);
 
 		plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
 			try {
 				listCache = getOnlineForce();
-			} catch (Exception e) {
-				return; // no players online to send the plugin message
+			} catch (NoOnlinePlayerException e) {
+				return;
 			}
 		}, 5L, REFRESH_PERIOD_TICKS);
 	}
@@ -44,7 +45,7 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 		onlineListQueue.clear();
 	}
 
-	public PlayerStatus getPlayerStatus(String username) throws Exception {
+	public PlayerStatus getPlayerStatus(String username) throws NoOnlinePlayerException {
 		ByteArrayDataOutput out = ByteStreams.newDataOutput();
 		out.writeUTF("LastOnline");
 		out.writeUTF(username);
@@ -52,44 +53,53 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 		Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
 
 		if (player.isPresent()) {
-			player.get().sendPluginMessage(plugin, "RedisBungee", out.toByteArray());
-			return playerStatusQueue.take();
+			player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
+			
+			try {
+				return playerStatusQueue.take();
+			} catch (InterruptedException e) {
+				return null;
+			}
 		}
 
-		throw new Exception("No player to send plugin message");
+		throw new NoOnlinePlayerException();
 	}
 
-	public Multimap<String, String> getOnline() {
-		return listCache == null ? listCache = HashMultimap.create() : listCache;
-	}
-
-	public synchronized Multimap<String, String> getOnlineForce() throws Exception {
+	public Multimap<String, String> getOnlineForce() throws NoOnlinePlayerException {
 		ByteArrayDataOutput out = ByteStreams.newDataOutput();
 		out.writeUTF("ServerPlayers");
 		out.writeUTF("PLAYERS");
 
 		Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
-
+		
 		if (player.isPresent()) {
-			player.get().sendPluginMessage(plugin, "RedisBungee", out.toByteArray());
-			/* Blocking (wait for the message to come back from the proxy) */
-			return onlineListQueue.take();
+			player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
+			
+			try {
+				return onlineListQueue.take();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
-
-		throw new Exception("No player to send plugin message");
+		
+		throw new NoOnlinePlayerException();
+	}
+	
+	public Multimap<String, String> getOnline() {
+		return listCache == null ? listCache = HashMultimap.create() : listCache;
 	}
 
 	@Override
 	public void onPluginMessageReceived(String channel, Player player, byte[] message) {
-		if (!channel.equals("RedisBungee")) {
+		if (!channel.equals(MESSAGING_CHANNEL)) {
 			return;
 		}
-
+		
 		ByteArrayDataInput in = ByteStreams.newDataInput(message);
 
 		String command = in.readUTF();
 		String argument = in.readUTF();
-
+		
 		switch (command) {
 		case "LastOnline":
 			/*	
@@ -109,19 +119,9 @@ public final class PlayerStatusAPI implements PluginMessageListener {
 
 			break;
 		case "ServerPlayers":
-			/*
-			 * 	https://github.com/minecrafter/RedisBungee/wiki/API#plugin-messaging-bukkit
-			 * 
-			 * 	CSV of player names, no spaces
-			 * 	Eg: "Notch,Dinnerbone,md_5"
-			 */
 
-			// TODO: figure out how to deserialize a multimap
-
-			String csv = in.readUTF();
-
-			//onlineListQueue.put(Arrays.asList(csv.split(",")));
-
+			// TODO: deserialize map of players
+			
 			break;
 		}
 	}

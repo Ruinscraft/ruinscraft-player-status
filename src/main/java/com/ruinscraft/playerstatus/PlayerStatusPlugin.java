@@ -10,7 +10,7 @@ public class PlayerStatusPlugin extends JavaPlugin {
 	@Override
 	public void onEnable() {
 		instance = this;
-		api = new PlayerStatusAPI(instance);
+		api = new PlayerStatusAPI(this);
 
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
@@ -21,6 +21,8 @@ public class PlayerStatusPlugin extends JavaPlugin {
 	@Override
 	public void onDisable() {
 		api.cleanup();
+		
+		getServer().getScheduler().cancelTasks(this);
 	}
 
 	public static PlayerStatusPlugin getInstance() {
