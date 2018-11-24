@@ -49,6 +49,10 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		return new Callable<PlayerStatus>() {
 			@Override
 			public PlayerStatus call() throws Exception {
+				if (username == null) {
+					return new InvalidPlayerStatus();
+				}
+				
 				ByteArrayDataOutput out = ByteStreams.newDataOutput();
 				out.writeUTF("LastOnline");
 				out.writeUTF(username);
