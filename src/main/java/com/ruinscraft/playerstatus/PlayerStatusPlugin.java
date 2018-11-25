@@ -28,6 +28,7 @@ public class PlayerStatusPlugin extends JavaPlugin {
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
 		
 		getCommand("list").setExecutor(new ListCommand());
+		getCommand("vanish").setExecutor(new VanishCommand());
 	}
 
 	@Override
