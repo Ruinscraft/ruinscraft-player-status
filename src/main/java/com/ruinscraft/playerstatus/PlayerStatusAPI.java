@@ -9,7 +9,6 @@ import java.util.concurrent.Callable;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitScheduler;
 
@@ -23,7 +22,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
 	private static final String MESSAGING_CHANNEL = "RedisBungee";
 	private static final long REFRESH_PERIOD_TICKS = 50L;
-	private static final JavaPlugin plugin = PlayerStatusPlugin.getInstance();
+	private static final PlayerStatusPlugin plugin = PlayerStatusPlugin.getInstance();
 
 	/* Multimap<String, String> <=> Map<String, List<String>>*/
 	private Multimap<String, String> listCache;
@@ -102,6 +101,14 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 	public Multimap<String, String> getOnline() {
 		return listCache;
 	}
+	
+	public Callable<Void> setVanished(String username, boolean vanished) {
+		return plugin.getPlayerStorage().setVanished(username, vanished);
+	}
+	
+	public Callable<Boolean> isVanished(String username) {
+		return plugin.getPlayerStorage().isVanished(username);
+	}
 
 	@Override
 	public void onPluginMessageReceived(String channel, Player player, byte[] message) {
@@ -163,7 +170,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 	}
 
 	@Override
-	public void close() throws Exception {
+	public void close() {
 		listCache.clear();
 		playerStatusQueue.clear();
 		onlineListQueue.clear();
