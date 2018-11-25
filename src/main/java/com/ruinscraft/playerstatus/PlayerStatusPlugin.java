@@ -11,22 +11,22 @@ public class PlayerStatusPlugin extends JavaPlugin {
 	private static PlayerStatusAPI api;
 
 	private PlayerStorage playerStorage;
-	
+
 	@Override
 	public void onEnable() {
 		instance = this;
-		
+
 		api = new PlayerStatusAPI();
 
 		saveDefaultConfig();
-		
+
 		if (getConfig().getBoolean("storage.redis.use")) {
 			playerStorage = new RedisPlayerStorage(getConfig().getConfigurationSection("storage.redis"));
 		}
-		
+
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
-		
+
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
 	}
@@ -35,16 +35,24 @@ public class PlayerStatusPlugin extends JavaPlugin {
 	public void onDisable() {
 		api.close();
 		playerStorage.close();
-		
+
 		getServer().getScheduler().cancelTasks(this);
 	}
-	
+
 	public PlayerStorage getPlayerStorage() {
 		return playerStorage;
 	}
 
 	public static PlayerStatusPlugin getInstance() {
 		return instance;
+	}
+
+	public static void info(String message) {
+		instance.getLogger().info(message);
+	}
+
+	public static void warning(String message) {
+		instance.getLogger().warning(message);
 	}
 
 	public static PlayerStatusAPI getAPI() {

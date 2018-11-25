@@ -11,15 +11,15 @@ public class ListCommand implements CommandExecutor {
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		Multimap<String, String> players = PlayerStatusPlugin.getAPI().getOnline();
-		
+
 		for (String server : players.keySet()) {
 			sender.sendMessage(server + ":");
-			
+
 			for (String player : players.get(server)) {
 				sender.sendMessage(player);
 			}
 		}
-		
+
 		return true;
 	}
 
