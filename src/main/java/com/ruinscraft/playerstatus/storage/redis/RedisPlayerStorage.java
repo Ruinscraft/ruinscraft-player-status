@@ -1,5 +1,7 @@
 package com.ruinscraft.playerstatus.storage.redis;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.bukkit.configuration.ConfigurationSection;
@@ -55,6 +57,22 @@ public class RedisPlayerStorage implements PlayerStorage {
 				try (Jedis jedis = pool.getResource()) {
 					return jedis.sismember(VANISHED, username);
 				}
+			}
+		};
+	}
+	
+	@Override
+	public Callable<List<String>> getVanished() {
+		return new Callable<List<String>>() {
+			@Override
+			public List<String> call() throws Exception {
+				List<String> vanished = new ArrayList<>();
+				
+				try (Jedis jedis = pool.getResource()) {
+					vanished.addAll(jedis.smembers(VANISHED));
+				}
+				
+				return vanished;
 			}
 		};
 	}
