@@ -2,6 +2,7 @@ package com.ruinscraft.playerstatus;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -102,6 +103,18 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		return listCache;
 	}
 	
+	public List<String> getOnlyPlayers() {
+		List<String> players = new ArrayList<>();
+		
+		Multimap<String, String> playersWithServers = getOnline();
+		
+		for (String server : playersWithServers.keySet()) {
+			players.addAll(playersWithServers.get(server));
+		}
+
+		return players;
+	}
+	
 	public Callable<Void> setVanished(String username, boolean vanished) {
 		return plugin.getPlayerStorage().setVanished(username, vanished);
 	}
@@ -110,6 +123,10 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		return plugin.getPlayerStorage().isVanished(username);
 	}
 
+	public Callable<List<String>> getVanished() {
+		return plugin.getPlayerStorage().getVanished();
+	}
+	
 	@Override
 	public void onPluginMessageReceived(String channel, Player player, byte[] message) {
 		if (!channel.equals(MESSAGING_CHANNEL)) {
