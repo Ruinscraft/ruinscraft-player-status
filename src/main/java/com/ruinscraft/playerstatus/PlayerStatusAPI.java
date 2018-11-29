@@ -38,7 +38,19 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
 		sch.runTaskTimerAsynchronously(plugin, () -> {
 			try {
-				listCache = getOnlineForce().call();
+				Multimap<String, String> temp = getOnlineForce().call();
+
+				/* Remove vanished players */
+				List<String> allVanished = plugin.getPlayerStorage().getVanished().call();
+				for (String server : temp.keySet()) {
+					for (String vanished : allVanished) {
+						if (temp.containsEntry(server, vanished)) {
+							temp.remove(server, vanished);
+						}
+					}
+				}
+				
+				listCache = temp;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -53,6 +65,10 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 					return new InvalidPlayerStatus();
 				}
 
+				if (isVanished(username).call()) {
+					return new PlayerStatus(username, -1);
+				}
+				
 				ByteArrayDataOutput out = ByteStreams.newDataOutput();
 				out.writeUTF("LastOnline");
 				out.writeUTF(username);

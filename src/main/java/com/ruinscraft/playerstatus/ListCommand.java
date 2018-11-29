@@ -13,6 +13,11 @@ public class ListCommand implements CommandExecutor {
 		Multimap<String, String> players = PlayerStatusPlugin.getAPI().getOnline();
 
 		for (String server : players.keySet()) {
+			
+			if (!sender.hasPermission("server." + server)) {
+				continue;
+			}
+			
 			sender.sendMessage(server + ":");
 
 			for (String player : players.get(server)) {

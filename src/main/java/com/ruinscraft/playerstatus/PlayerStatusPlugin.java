@@ -16,8 +16,6 @@ public class PlayerStatusPlugin extends JavaPlugin {
 	public void onEnable() {
 		instance = this;
 
-		api = new PlayerStatusAPI();
-
 		saveDefaultConfig();
 
 		if (getConfig().getBoolean("storage.redis.use")) {
@@ -29,6 +27,8 @@ public class PlayerStatusPlugin extends JavaPlugin {
 
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
+		
+		api = new PlayerStatusAPI();
 	}
 
 	@Override
