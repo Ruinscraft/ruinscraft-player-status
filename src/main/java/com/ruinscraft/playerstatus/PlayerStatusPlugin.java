@@ -24,13 +24,13 @@ public class PlayerStatusPlugin extends JavaPlugin {
 			playerStorage = new RedisPlayerStorage(getConfig().getConfigurationSection("storage.redis"));
 		}
 
+		api = new PlayerStatusAPI();
+		
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
 
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
-		
-		api = new PlayerStatusAPI();
 	}
 
 	@Override
