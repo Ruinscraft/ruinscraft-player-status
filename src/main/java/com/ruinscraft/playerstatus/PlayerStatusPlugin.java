@@ -1,5 +1,7 @@
 package com.ruinscraft.playerstatus;
 
+import java.util.List;
+
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.ruinscraft.playerstatus.commands.ListCommand;
@@ -29,8 +31,21 @@ public class PlayerStatusPlugin extends JavaPlugin {
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
 
+		getServer().getPluginManager().registerEvents(new JoinListener(), this);
+		
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
+		
+		getServer().getScheduler().runTaskAsynchronously(this, () -> {
+			try {
+				List<String> vanished = PlayerStatusPlugin.getAPI().getVanished().call();
+				getServer().getScheduler().runTask(PlayerStatusPlugin.this, () -> {
+					JoinListener.handleVanished(vanished);
+				});
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
 	}
 
 	@Override

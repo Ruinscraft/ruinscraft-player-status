@@ -1,7 +1,6 @@
 package com.ruinscraft.playerstatus.commands;
 
-import java.util.concurrent.Callable;
-
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -24,18 +23,25 @@ public class VanishCommand implements CommandExecutor {
 		Player player = (Player) sender;
 
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
-			Callable<Boolean> checkCall = api.isVanished(player.getName());
-
 			try {
-				if (checkCall.call()) {
+				
+				boolean vanished = api.isVanished(player.getName()).call();
+				
+				if (!player.isOnline()) {
+					return;
+				}
+				
+				if (vanished) {
 					api.setVanished(player.getName(), false).call();
-
 					player.sendMessage(Constants.COLOR_BASE + "Unvanished");
 				} else {
 					api.setVanished(player.getName(), true).call();
-
 					player.sendMessage(Constants.COLOR_BASE + "Vanished");
 				}
+				
+				PlayerStatusPlugin.getInstance().getServer().getScheduler().runTask(PlayerStatusPlugin.getInstance(), () -> {
+					handleVanish(player, !vanished);
+				});
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -44,4 +50,18 @@ public class VanishCommand implements CommandExecutor {
 		return true;
 	}
 
+	private static void handleVanish(Player player, boolean vanished) {
+		if (!player.isOnline()) {
+			return;
+		}
+		
+		for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+			if (vanished) {
+				onlinePlayer.hidePlayer(PlayerStatusPlugin.getInstance(), player);
+			} else {
+				onlinePlayer.showPlayer(PlayerStatusPlugin.getInstance(), player);
+			}
+		}
+	}
+	
 }
