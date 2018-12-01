@@ -3,4 +3,9 @@ name: ${name}
 version: ${version}
 commands:
   list:
+    description: List players on the server
+    aliases: [l, who, online, glist, globallist, listeveryonewhoisontheserver, whosonline]
   vanish:
+    description: Vanish from other players
+    aliases: [v, van]
+    permission: ruinscraft.command.vanish

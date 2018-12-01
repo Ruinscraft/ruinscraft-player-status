@@ -1,10 +1,11 @@
-package com.ruinscraft.playerstatus;
+package com.ruinscraft.playerstatus.commands;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 import com.google.common.collect.Multimap;
+import com.ruinscraft.playerstatus.PlayerStatusPlugin;
 
 public class ListCommand implements CommandExecutor {
 

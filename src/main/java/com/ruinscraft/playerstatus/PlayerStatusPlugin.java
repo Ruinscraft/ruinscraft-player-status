@@ -2,8 +2,10 @@ package com.ruinscraft.playerstatus;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.ruinscraft.playerstatus.commands.ListCommand;
+import com.ruinscraft.playerstatus.commands.VanishCommand;
 import com.ruinscraft.playerstatus.storage.PlayerStorage;
-import com.ruinscraft.playerstatus.storage.redis.RedisPlayerStorage;
+import com.ruinscraft.playerstatus.storage.RedisPlayerStorage;
 
 public class PlayerStatusPlugin extends JavaPlugin {
 

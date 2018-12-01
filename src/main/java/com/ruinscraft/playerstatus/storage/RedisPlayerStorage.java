@@ -1,12 +1,10 @@
-package com.ruinscraft.playerstatus.storage.redis;
+package com.ruinscraft.playerstatus.storage;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.bukkit.configuration.ConfigurationSection;
-
-import com.ruinscraft.playerstatus.storage.PlayerStorage;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
