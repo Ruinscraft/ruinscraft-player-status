@@ -7,6 +7,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 public class JoinListener implements Listener {
 
@@ -31,6 +33,7 @@ public class JoinListener implements Listener {
 			if (vanishedPlayer != null && vanishedPlayer.isOnline()) {
 				for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
 					if (onlinePlayer.equals(vanishedPlayer)) {
+						vanishedPlayer.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
 						continue;
 					}
 					onlinePlayer.hidePlayer(PlayerStatusPlugin.getInstance(), vanishedPlayer);

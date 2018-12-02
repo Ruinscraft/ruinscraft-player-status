@@ -5,6 +5,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import com.ruinscraft.playerstatus.Constants;
 import com.ruinscraft.playerstatus.PlayerStatusAPI;
@@ -53,6 +55,12 @@ public class VanishCommand implements CommandExecutor {
 	private static void handleVanish(Player player, boolean vanished) {
 		if (!player.isOnline()) {
 			return;
+		}
+		
+		if (vanished) {
+			player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
+		} else {
+			player.removePotionEffect(PotionEffectType.INVISIBILITY);
 		}
 		
 		for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
