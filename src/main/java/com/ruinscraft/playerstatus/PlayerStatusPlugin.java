@@ -44,11 +44,6 @@ public class PlayerStatusPlugin extends JavaPlugin {
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
 
-		getServer().getPluginManager().registerEvents(new JoinListener(), this);
-		
-		getCommand("list").setExecutor(new ListCommand());
-		getCommand("vanish").setExecutor(new VanishCommand());
-		
 		/* Setup Vault Chat */
 		RegisteredServiceProvider<Chat> chatProvider = getServer().getServicesManager().getRegistration(Chat.class);
 		if (chatProvider != null) {
@@ -68,6 +63,11 @@ public class PlayerStatusPlugin extends JavaPlugin {
 				e.printStackTrace();
 			}
 		});
+		
+		getServer().getPluginManager().registerEvents(new JoinListener(), this);
+		
+		getCommand("list").setExecutor(new ListCommand());
+		getCommand("vanish").setExecutor(new VanishCommand());
 	}
 
 	@Override
