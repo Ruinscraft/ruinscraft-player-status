@@ -20,10 +20,6 @@
 			<id>spigot-repo</id>
 			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
 		</repository>
-		<repository>
-			<id>vault-repo</id>
-			<url>http://nexus.hc.to/content/repositories/pub_releases</url>
-		</repository>
 	</repositories>
 
 	<dependencies>
@@ -39,12 +35,12 @@
 			<version>21.0</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>net.milkbowl.vault</groupId>
-			<artifactId>VaultAPI</artifactId>
-			<version>1.7</version>
-			<scope>provided</scope>
-		</dependency>
+    <dependency>
+        <groupId>me.lucko.luckperms</groupId>
+        <artifactId>luckperms-api</artifactId>
+        <version>4.3</version>
+        <scope>provided</scope>
+    </dependency>
 		<dependency>
 			<groupId>redis.clients</groupId>
 			<artifactId>jedis</artifactId>
