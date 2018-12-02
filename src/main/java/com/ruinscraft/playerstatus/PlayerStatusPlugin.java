@@ -26,6 +26,13 @@ public class PlayerStatusPlugin extends JavaPlugin {
 	public void onEnable() {
 		instance = this;
 
+		/* Check for Vault */
+		if (getServer().getPluginManager().getPlugin("Vault") == null) {
+			warning("Vault required");
+			getServer().getPluginManager().disablePlugin(this);
+			return;
+		}
+		
 		saveDefaultConfig();
 
 		if (getConfig().getBoolean("storage.redis.use")) {

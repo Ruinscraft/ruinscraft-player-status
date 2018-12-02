@@ -1,6 +1,9 @@
 main: ${mainClass}
 name: ${name}
 version: ${version}
+
+depend: [Vault]
+
 commands:
   list:
     description: List players on the server
