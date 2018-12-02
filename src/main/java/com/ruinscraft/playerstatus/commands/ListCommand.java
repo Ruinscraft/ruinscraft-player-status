@@ -21,6 +21,10 @@ public class ListCommand implements CommandExecutor {
 
 	public ListCommand() {
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskTimerAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
+			if (PlayerStatusPlugin.getInstance() == null) {
+				return;
+			}
+			
 			/* This is actually run sync, it is always cached */
 			Multimap<String, String> players = PlayerStatusPlugin.getAPI().getOnline();
 
@@ -80,7 +84,7 @@ public class ListCommand implements CommandExecutor {
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		Multimap<String, String> players = PlayerStatusPlugin.getAPI().getOnline();
 		for (String server : players.keySet()) {
-			if (!sender.hasPermission("server." + server)) {
+			if (!sender.hasPermission("slashserver." + server)) {
 				continue;
 			}
 			sender.sendMessage(serverView.get(server));
