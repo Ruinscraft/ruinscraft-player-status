@@ -2,6 +2,7 @@ package com.ruinscraft.playerstatus;
 
 import java.util.List;
 
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.ruinscraft.playerstatus.commands.ListCommand;
@@ -9,11 +10,16 @@ import com.ruinscraft.playerstatus.commands.VanishCommand;
 import com.ruinscraft.playerstatus.storage.PlayerStorage;
 import com.ruinscraft.playerstatus.storage.RedisPlayerStorage;
 
+import net.milkbowl.vault.chat.Chat;
+import net.milkbowl.vault.permission.Permission;
+
 public class PlayerStatusPlugin extends JavaPlugin {
 
 	private static PlayerStatusPlugin instance;
 	private static PlayerStatusAPI api;
-
+	private static Chat vaultChat;
+	private static Permission vaultPermissions;
+	
 	private PlayerStorage playerStorage;
 
 	@Override
@@ -35,6 +41,15 @@ public class PlayerStatusPlugin extends JavaPlugin {
 		
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
+		
+		/* Setup Vault Chat */
+		RegisteredServiceProvider<Chat> chatProvider = getServer().getServicesManager().getRegistration(Chat.class);
+		if (chatProvider != null) {
+			vaultChat = chatProvider.getProvider();
+		}
+		/* Setup Vault Permissions */
+		RegisteredServiceProvider<Permission> rsp = getServer().getServicesManager().getRegistration(Permission.class);
+		vaultPermissions = rsp.getProvider();
 		
 		getServer().getScheduler().runTaskAsynchronously(this, () -> {
 			try {
@@ -74,6 +89,14 @@ public class PlayerStatusPlugin extends JavaPlugin {
 
 	public static PlayerStatusAPI getAPI() {
 		return api;
+	}
+	
+	public static Chat getVaultChat() {
+		return vaultChat;
+	}
+	
+	public static Permission getVaultPermissions() {
+		return vaultPermissions;
 	}
 
 }
