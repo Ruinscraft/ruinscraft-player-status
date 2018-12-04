@@ -9,12 +9,9 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import com.ruinscraft.playerstatus.Constants;
-import com.ruinscraft.playerstatus.PlayerStatusAPI;
 import com.ruinscraft.playerstatus.PlayerStatusPlugin;
 
 public class VanishCommand implements CommandExecutor {
-
-	private static PlayerStatusAPI api = PlayerStatusPlugin.getAPI();
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -27,17 +24,17 @@ public class VanishCommand implements CommandExecutor {
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
 			try {
 				
-				boolean vanished = api.isVanished(player.getName()).call();
+				boolean vanished = PlayerStatusPlugin.getInstance().getAPI().isVanished(player.getName()).call();
 				
 				if (!player.isOnline()) {
 					return;
 				}
 				
 				if (vanished) {
-					api.setVanished(player.getName(), false).call();
+					PlayerStatusPlugin.getInstance().getAPI().setVanished(player.getName(), false).call();
 					player.sendMessage(Constants.COLOR_BASE + "Unvanished");
 				} else {
-					api.setVanished(player.getName(), true).call();
+					PlayerStatusPlugin.getInstance().getAPI().setVanished(player.getName(), true).call();
 					player.sendMessage(Constants.COLOR_BASE + "Vanished");
 				}
 				

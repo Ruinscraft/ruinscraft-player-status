@@ -37,28 +37,30 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		BukkitScheduler sch = plugin.getServer().getScheduler();
 
 		sch.runTaskTimerAsynchronously(plugin, () -> {
+			if (!plugin.isEnabled()) {
+				return;
+			}
+			
 			try {
-				if (Bukkit.getOnlinePlayers().size() < 1) {
-					return;
-				}
-				
 				Multimap<String, String> temp = getOnlineForce().call();
+				Multimap<String, String> nonVanished = HashMultimap.create();
+				List<String> vanishedPlayers = plugin.getPlayerStorage().getVanished().call();
 
-				/* Remove vanished players */
-				List<String> allVanished = plugin.getPlayerStorage().getVanished().call();
 				for (String server : temp.keySet()) {
-					for (String vanished : allVanished) {
-						if (temp.containsEntry(server, vanished)) {
-							temp.remove(server, vanished);
+					for (String player : temp.get(server)) {
+						if (vanishedPlayers.contains(player)) {
+							continue;
 						}
+
+						nonVanished.put(server, player);
 					}
 				}
-				
-				listCache = temp;
+
+				listCache = nonVanished;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		}, 5L, REFRESH_PERIOD_TICKS);
+		}, 20L, REFRESH_PERIOD_TICKS);
 	}
 
 	public Callable<PlayerStatus> getPlayerStatus(String username) {
@@ -70,9 +72,9 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 				}
 
 				if (isVanished(username).call()) {
-					return new PlayerStatus(username, -1);
+					return new VanishedPlayerStatus(username);
 				}
-				
+
 				ByteArrayDataOutput out = ByteStreams.newDataOutput();
 				out.writeUTF("LastOnline");
 				out.writeUTF(username);
@@ -82,11 +84,21 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 				if (player.isPresent()) {
 					player.get().sendPluginMessage(plugin, MESSAGING_CHANNEL, out.toByteArray());
 
-					try {
-						return playerStatusQueue.take();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+					PlayerStatus playerStatus = null;
+
+					while (playerStatus == null) {
+						if (playerStatusQueue.peek() == null) {
+							continue;
+						}
+						
+						if (!playerStatusQueue.peek().username.equals(username)) {
+							continue;
+						}
+
+						playerStatus = playerStatusQueue.take();
 					}
+
+					return playerStatus;
 				}
 
 				return new InvalidPlayerStatus();
@@ -159,50 +171,50 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		String argument = in.readUTF();
 
 		switch (command) {
-			case "LastOnline":
-				/*	
-				 * 	https://github.com/minecrafter/RedisBungee/wiki/API#plugin-messaging-bukkit
-				 * 
-				 * 	-1		never joined 
-				 *	0		currently online
-				 * 	+Z		last seen epoch time
-				 */
-				long online = in.readLong();
-	
-				try {
-					playerStatusQueue.put(new PlayerStatus(argument, online));
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+		case "LastOnline":
+			/*	
+			 * 	https://github.com/minecrafter/RedisBungee/wiki/API#plugin-messaging-bukkit
+			 * 
+			 * 	-1		never joined 
+			 *	0		currently online
+			 * 	+Z		last seen epoch time
+			 */
+			long online = in.readLong();
+
+			try {
+				playerStatusQueue.put(new PlayerStatus(argument, online));
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			break;
+		case "ServerPlayers":
+			Multimap<String, String> allPlayers = HashMultimap.create();
+
+			int serverCount = in.readInt();
+
+			do {
+				String serverName = in.readUTF();
+				int serverPlayerCount = in.readInt();
+
+				Collection<String> serverPlayers = new ArrayList<>();
+
+				for (int i = 0; i < serverPlayerCount; i++) {
+					String playerName = in.readUTF();
+					serverPlayers.add(playerName);
 				}
-	
-				break;
-			case "ServerPlayers":
-				Multimap<String, String> allPlayers = HashMultimap.create();
-	
-				int serverCount = in.readInt();
-	
-				do {
-					String serverName = in.readUTF();
-					int serverPlayerCount = in.readInt();
-	
-					Collection<String> serverPlayers = new ArrayList<>();
-	
-					for (int i = 0; i < serverPlayerCount; i++) {
-						String playerName = in.readUTF();
-						serverPlayers.add(playerName);
-					}
-	
-					allPlayers.putAll(serverName, serverPlayers);
-	
-				} while (--serverCount > 0);
-	
-				try {
-					onlineListQueue.put(allPlayers);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-	
-				break;
+
+				allPlayers.putAll(serverName, serverPlayers);
+
+			} while (--serverCount > 0);
+
+			try {
+				onlineListQueue.put(allPlayers);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			break;
 		}
 	}
 

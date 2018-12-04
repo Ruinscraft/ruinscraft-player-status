@@ -16,7 +16,7 @@ public class JoinListener implements Listener {
 	public void onJoin(PlayerJoinEvent event) {
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
 			try {
-				List<String> vanished = PlayerStatusPlugin.getAPI().getVanished().call();
+				List<String> vanished = PlayerStatusPlugin.getInstance().getAPI().getVanished().call();
 				PlayerStatusPlugin.getInstance().getServer().getScheduler().runTask(PlayerStatusPlugin.getInstance(), () -> {
 					handleVanished(vanished);
 				});

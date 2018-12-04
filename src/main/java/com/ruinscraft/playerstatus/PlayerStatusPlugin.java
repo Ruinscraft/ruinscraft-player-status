@@ -16,41 +16,35 @@ import me.lucko.luckperms.api.LuckPermsApi;
 public class PlayerStatusPlugin extends JavaPlugin {
 
 	private static PlayerStatusPlugin instance;
-	private static PlayerStatusAPI api;
 	private static LuckPermsApi luckPermsApi;
 
 	private PlayerStorage playerStorage;
+	private PlayerStatusAPI api;
 
 	@Override
 	public void onEnable() {
 		instance = this;
 
-		/* Check for Vault */
-		if (getServer().getPluginManager().getPlugin("Vault") == null) {
-			warning("Vault required");
+		saveDefaultConfig();
+
+		/* Check for LuckPerms */
+		if (getServer().getPluginManager().getPlugin("LuckPerms") == null) {
+			warning("LuckPerms required");
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
-
-		saveDefaultConfig();
 
 		if (getConfig().getBoolean("storage.redis.use")) {
 			playerStorage = new RedisPlayerStorage(getConfig().getConfigurationSection("storage.redis"));
 		}
 
 		api = new PlayerStatusAPI();
-		
-		RegisteredServiceProvider<LuckPermsApi> provider = Bukkit.getServicesManager().getRegistration(LuckPermsApi.class);
-		if (provider != null) {
-		    luckPermsApi = provider.getProvider();
-		}
 
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
-
 		getServer().getScheduler().runTaskAsynchronously(this, () -> {
 			try {
-				List<String> vanished = PlayerStatusPlugin.getAPI().getVanished().call();
+				List<String> vanished = api.getVanished().call();
 				getServer().getScheduler().runTask(PlayerStatusPlugin.this, () -> {
 					JoinListener.handleVanished(vanished);
 				});
@@ -58,43 +52,49 @@ public class PlayerStatusPlugin extends JavaPlugin {
 				e.printStackTrace();
 			}
 		});
-
 		getServer().getPluginManager().registerEvents(new JoinListener(), this);
-
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
+
+		RegisteredServiceProvider<LuckPermsApi> provider = Bukkit.getServicesManager().getRegistration(LuckPermsApi.class);
+		if (provider != null) {
+			luckPermsApi = provider.getProvider();
+		}
 	}
 
 	@Override
 	public void onDisable() {
+		getServer().getMessenger().unregisterOutgoingPluginChannel(this, "RedisBungee");
+		getServer().getMessenger().unregisterIncomingPluginChannel(this, "RedisBungee", api);
+		getServer().getScheduler().cancelTasks(this);
+
 		api.close();
 		playerStorage.close();
-
-		getServer().getScheduler().cancelTasks(this);
 	}
 
 	public PlayerStorage getPlayerStorage() {
 		return playerStorage;
 	}
 
+	public PlayerStatusAPI getAPI() {
+		return api;
+	}
+
 	public static PlayerStatusPlugin getInstance() {
 		return instance;
 	}
 
+	public static LuckPermsApi getLuckPermsApi() {
+		return luckPermsApi;
+	}
+
+	/* Logging */
 	public static void info(String message) {
 		instance.getLogger().info(message);
 	}
 
 	public static void warning(String message) {
 		instance.getLogger().warning(message);
-	}
-
-	public static PlayerStatusAPI getAPI() {
-		return api;
-	}
-	
-	public static LuckPermsApi getLuckPermsApi() {
-		return luckPermsApi;
 	}
 
 }
