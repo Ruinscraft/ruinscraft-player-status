@@ -24,7 +24,7 @@ public class ListCommand implements CommandExecutor {
 
 	public ListCommand() {
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskTimerAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
-			if (PlayerStatusPlugin.getInstance() == null) {
+			if (!PlayerStatusPlugin.getInstance().isEnabled()) {
 				return;
 			}
 
@@ -35,8 +35,7 @@ public class ListCommand implements CommandExecutor {
 				return;
 			}
 
-			UserManager userManager = PlayerStatusPlugin.getLuckPermsApi().getUserManager();
-
+			UserManager lpUserManager = PlayerStatusPlugin.getLuckPermsApi().getUserManager();
 			List<String> staffOnline = new ArrayList<>();
 
 			for (String server : players.keySet()) {
@@ -51,8 +50,8 @@ public class ListCommand implements CommandExecutor {
 						break;
 					}
 
-					UUID playerUUID = userManager.lookupUuid(player).join();
-					User lpUser = userManager.loadUser(playerUUID).join();
+					UUID playerUUID = lpUserManager.lookupUuid(player).join();
+					User lpUser = lpUserManager.loadUser(playerUUID).join();
 
 					if (lpUser.getPrimaryGroup().equals("owner")) {
 						serverPlayers.add(ChatColor.DARK_RED + player);

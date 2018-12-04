@@ -21,9 +21,9 @@ import com.google.common.io.ByteStreams;
 
 public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseable {
 
-	private static final String MESSAGING_CHANNEL = "RedisBungee";
-	private static final long REFRESH_PERIOD_TICKS = 50L;
-	private static final PlayerStatusPlugin plugin = PlayerStatusPlugin.getInstance();
+	private static final String MESSAGING_CHANNEL 	= "RedisBungee";
+	private static final long REFRESH_PERIOD_TICKS 	= 50L;
+	private static final PlayerStatusPlugin plugin 	= PlayerStatusPlugin.getInstance();
 
 	/* Multimap<String, String> <=> Map<String, List<String>>*/
 	private Multimap<String, String> listCache;
