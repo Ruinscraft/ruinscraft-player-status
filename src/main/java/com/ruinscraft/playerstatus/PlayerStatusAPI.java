@@ -38,6 +38,10 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
 		sch.runTaskTimerAsynchronously(plugin, () -> {
 			try {
+				if (Bukkit.getOnlinePlayers().size() < 1) {
+					return;
+				}
+				
 				Multimap<String, String> temp = getOnlineForce().call();
 
 				/* Remove vanished players */
