@@ -91,6 +91,10 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 							continue;
 						}
 						
+						if (playerStatusQueue.peek() instanceof InvalidPlayerStatus) {
+							continue;
+						}
+						
 						if (!playerStatusQueue.peek().username.equals(username)) {
 							continue;
 						}
