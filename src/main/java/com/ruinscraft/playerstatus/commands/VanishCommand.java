@@ -1,6 +1,7 @@
 package com.ruinscraft.playerstatus.commands;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -8,7 +9,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import com.ruinscraft.playerstatus.Constants;
 import com.ruinscraft.playerstatus.PlayerStatusPlugin;
 
 public class VanishCommand implements CommandExecutor {
@@ -32,10 +32,10 @@ public class VanishCommand implements CommandExecutor {
 				
 				if (vanished) {
 					PlayerStatusPlugin.getInstance().getAPI().setVanished(player.getName(), false).call();
-					player.sendMessage(Constants.COLOR_BASE + "Unvanished");
+					player.sendMessage(ChatColor.GOLD + "Unvanished");
 				} else {
 					PlayerStatusPlugin.getInstance().getAPI().setVanished(player.getName(), true).call();
-					player.sendMessage(Constants.COLOR_BASE + "Vanished");
+					player.sendMessage(ChatColor.GOLD + "Vanished");
 				}
 				
 				PlayerStatusPlugin.getInstance().getServer().getScheduler().runTask(PlayerStatusPlugin.getInstance(), () -> {

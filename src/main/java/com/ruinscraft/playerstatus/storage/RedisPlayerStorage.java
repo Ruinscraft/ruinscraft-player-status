@@ -14,22 +14,16 @@ import redis.clients.jedis.Protocol;
 public class RedisPlayerStorage implements PlayerStorage {
 
 	private static final String VANISHED = "vanished";
-	
+
 	private JedisPool pool;
-	
+
 	public RedisPlayerStorage(ConfigurationSection redisSection) {
 		String address = redisSection.getString("address");
 		int port = redisSection.getInt("port");
-		String password = redisSection.getString("password");
-
-		pool = new JedisPool(
-				new JedisPoolConfig(),
-				address,
-				port == 0 ? Protocol.DEFAULT_PORT : port,
-						Protocol.DEFAULT_TIMEOUT,
-						password);
+		JedisPoolConfig config = new JedisPoolConfig();
+		pool = new JedisPool(config, address, port == 0 ? Protocol.DEFAULT_PORT : port);
 	}
-	
+
 	@Override
 	public Callable<Void> setVanished(String username, boolean vanished) {
 		return new Callable<Void>() {
@@ -58,26 +52,28 @@ public class RedisPlayerStorage implements PlayerStorage {
 			}
 		};
 	}
-	
+
 	@Override
 	public Callable<List<String>> getVanished() {
 		return new Callable<List<String>>() {
 			@Override
 			public List<String> call() throws Exception {
 				List<String> vanished = new ArrayList<>();
-				
+
 				try (Jedis jedis = pool.getResource()) {
 					vanished.addAll(jedis.smembers(VANISHED));
 				}
-				
+
 				return vanished;
 			}
 		};
 	}
-	
+
 	@Override
 	public void close() {
-		pool.close();
+		if (!pool.isClosed()) {
+			pool.close();
+		}
 	}
-	
+
 }
