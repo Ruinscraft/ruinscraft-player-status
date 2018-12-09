@@ -84,6 +84,8 @@ public class ListCommand implements CommandExecutor {
 					else {
 						serverPlayers.add(ChatColor.GRAY + player);
 					}
+					
+					lpUserManager.cleanupUser(lpUser);
 				}
 
 				currentListView.put(server, serverName + String.join(ChatColor.GRAY + ", ", serverPlayers));
