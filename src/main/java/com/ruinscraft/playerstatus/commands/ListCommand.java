@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -13,9 +12,6 @@ import org.bukkit.command.CommandSender;
 
 import com.google.common.collect.Multimap;
 import com.ruinscraft.playerstatus.PlayerStatusPlugin;
-
-import me.lucko.luckperms.api.User;
-import me.lucko.luckperms.api.manager.UserManager;
 
 public class ListCommand implements CommandExecutor {
 
@@ -35,7 +31,6 @@ public class ListCommand implements CommandExecutor {
 				return;
 			}
 
-			UserManager lpUserManager = PlayerStatusPlugin.getLuckPermsApi().getUserManager();
 			List<String> staffOnline = new ArrayList<>();
 
 			for (String server : players.keySet()) {
@@ -44,48 +39,50 @@ public class ListCommand implements CommandExecutor {
 
 				int maxPlayers = 25;
 
-				for (String player : players.get(server)) {
+				for (String username : players.get(server)) {
 					if (maxPlayers-- == 1) {
 						serverPlayers.add(ChatColor.GRAY + "and " + (players.get(server).size() - 25) + " more");
 						break;
 					}
 
-					UUID playerUUID = lpUserManager.lookupUuid(player).join();
-					User lpUser = lpUserManager.loadUser(playerUUID).join();
-
-					if (lpUser.getPrimaryGroup().equals("owner")) {
-						serverPlayers.add(ChatColor.DARK_RED + player);
-						staffOnline.add(ChatColor.DARK_RED + player);
+					String group = null;
+					try {
+						group = PlayerStatusPlugin.getInstance().getPlayerStorage().getGroup(username).call();
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
 
-					else if (lpUser.getPrimaryGroup().equals("admin")) {
-						serverPlayers.add(ChatColor.GOLD + player);
-						staffOnline.add(ChatColor.GOLD + player);
-					}
+					if (group != null && !group.equals("member")) {
+						if (group.equals("owner")) {
+							serverPlayers.add(ChatColor.DARK_RED + username);
+							staffOnline.add(ChatColor.DARK_RED + username);
+						}
 
-					else if (lpUser.getPrimaryGroup().equals("moderator")) {
-						serverPlayers.add(ChatColor.BLUE + player);
-						staffOnline.add(ChatColor.BLUE + player);
-					}
+						else if (group.equals("admin")) {
+							serverPlayers.add(ChatColor.GOLD + username);
+							staffOnline.add(ChatColor.GOLD + username);
+						}
 
-					else if (lpUser.getPrimaryGroup().equals("helper")) {
-						serverPlayers.add(ChatColor.AQUA + player);
-						staffOnline.add(ChatColor.AQUA + player);
-					}
+						else if (group.equals("moderator")) {
+							serverPlayers.add(ChatColor.BLUE + username);
+							staffOnline.add(ChatColor.BLUE + username);
+						}
 
-					else if (lpUser.getPrimaryGroup().equals("builder")) {
-						serverPlayers.add(ChatColor.GREEN + player);
-					}
+						else if (group.equals("helper")) {
+							serverPlayers.add(ChatColor.AQUA + username);
+							staffOnline.add(ChatColor.AQUA + username);
+						}
 
-					else if (lpUser.getPrimaryGroup().contains("vip")) {
-						serverPlayers.add(ChatColor.DARK_PURPLE + player);
-					} 
+						else if (group.equals("builder")) {
+							serverPlayers.add(ChatColor.GREEN + username);
+						}
 
-					else {
-						serverPlayers.add(ChatColor.GRAY + player);
+						else if (group.contains("vip")) {
+							serverPlayers.add(ChatColor.DARK_PURPLE + username);
+						} 
+					} else {
+						serverPlayers.add(ChatColor.GRAY + username);
 					}
-					
-					lpUserManager.cleanupUser(lpUser);
 				}
 
 				currentListView.put(server, serverName + String.join(ChatColor.GRAY + ", ", serverPlayers));

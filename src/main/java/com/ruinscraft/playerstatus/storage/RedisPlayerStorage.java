@@ -14,6 +14,7 @@ import redis.clients.jedis.Protocol;
 public class RedisPlayerStorage implements PlayerStorage {
 
 	private static final String VANISHED = "vanished";
+	private static final String GROUP = "%s.group";
 
 	private JedisPool pool;
 
@@ -68,7 +69,32 @@ public class RedisPlayerStorage implements PlayerStorage {
 			}
 		};
 	}
+	
+	@Override
+	public Callable<Void> setGroup(String username, String group) {
+		return new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				try (Jedis jedis = pool.getResource()) {
+					jedis.set(String.format(GROUP, username), group);
+				}
+				return null;
+			}
+		};
+	}
 
+	@Override
+	public Callable<String> getGroup(String username) {
+		return new Callable<String>() {
+			@Override
+			public String call() throws Exception {
+				try (Jedis jedis = pool.getResource()) {
+					return jedis.get(String.format(GROUP, username));
+				}
+			}
+		};
+	}
+	
 	@Override
 	public void close() {
 		if (!pool.isClosed()) {

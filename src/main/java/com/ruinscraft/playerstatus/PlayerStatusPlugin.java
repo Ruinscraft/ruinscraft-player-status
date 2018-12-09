@@ -2,7 +2,6 @@ package com.ruinscraft.playerstatus;
 
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -11,13 +10,13 @@ import com.ruinscraft.playerstatus.commands.VanishCommand;
 import com.ruinscraft.playerstatus.storage.PlayerStorage;
 import com.ruinscraft.playerstatus.storage.RedisPlayerStorage;
 
-import me.lucko.luckperms.api.LuckPermsApi;
+import net.milkbowl.vault.permission.Permission;
 
 public class PlayerStatusPlugin extends JavaPlugin {
 
 	private static PlayerStatusPlugin instance;
-	private static LuckPermsApi luckPermsApi;
-
+	private static Permission vaultPerms;
+	
 	private PlayerStorage playerStorage;
 	private PlayerStatusAPI api;
 
@@ -27,9 +26,9 @@ public class PlayerStatusPlugin extends JavaPlugin {
 
 		saveDefaultConfig();
 
-		/* Check for LuckPerms */
-		if (getServer().getPluginManager().getPlugin("LuckPerms") == null) {
-			warning("LuckPerms required");
+		/* Check for Vault */
+		if (getServer().getPluginManager().getPlugin("Vault") == null) {
+			warning("Vault required");
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
@@ -40,6 +39,10 @@ public class PlayerStatusPlugin extends JavaPlugin {
 
 		api = new PlayerStatusAPI();
 
+		/* Setup Vault Permissions */
+		RegisteredServiceProvider<Permission> rsp = getServer().getServicesManager().getRegistration(Permission.class);
+        vaultPerms = rsp.getProvider();
+		
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
 		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
 		getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -56,10 +59,6 @@ public class PlayerStatusPlugin extends JavaPlugin {
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
 
-		RegisteredServiceProvider<LuckPermsApi> provider = Bukkit.getServicesManager().getRegistration(LuckPermsApi.class);
-		if (provider != null) {
-			luckPermsApi = provider.getProvider();
-		}
 	}
 
 	@Override
@@ -83,9 +82,9 @@ public class PlayerStatusPlugin extends JavaPlugin {
 	public static PlayerStatusPlugin getInstance() {
 		return instance;
 	}
-
-	public static LuckPermsApi getLuckPermsApi() {
-		return luckPermsApi;
+	
+	public static Permission getVaultPerms() {
+		return vaultPerms;
 	}
 
 	/* Logging */

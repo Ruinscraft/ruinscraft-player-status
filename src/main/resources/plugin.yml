@@ -2,7 +2,7 @@ main: ${mainClass}
 name: ${name}
 version: ${version}
 
-depend: [LuckPerms]
+depend: [Vault]
 
 commands:
   list:

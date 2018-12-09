@@ -19,6 +19,14 @@ public class JoinListener implements Listener {
 				List<String> vanished = PlayerStatusPlugin.getInstance().getAPI().getVanished().call();
 				PlayerStatusPlugin.getInstance().getServer().getScheduler().runTask(PlayerStatusPlugin.getInstance(), () -> {
 					handleVanished(vanished);
+					
+					String group = PlayerStatusPlugin.getVaultPerms().getPrimaryGroup(event.getPlayer());
+					
+					try {
+						PlayerStatusPlugin.getInstance().getPlayerStorage().setGroup(event.getPlayer().getName(), group).call();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				});
 			} catch (Exception e) {
 				e.printStackTrace();
