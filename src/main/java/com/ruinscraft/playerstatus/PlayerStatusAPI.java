@@ -39,10 +39,18 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		this.onlineListQueue = new ArrayBlockingQueue<>(32);
 
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskTimerAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
+			if (PlayerStatusPlugin.getInstance() == null) {
+				return;
+			}
+			
 			if (!PlayerStatusPlugin.getInstance().isEnabled()) {
 				return;
 			}
-
+			
+			if (Bukkit.getOnlinePlayers().size() < 1) {
+				return;
+			}
+			
 			try {
 				Multimap<String, String> temp = getOnlineForce().call();
 				Multimap<String, String> nonVanished = HashMultimap.create();
