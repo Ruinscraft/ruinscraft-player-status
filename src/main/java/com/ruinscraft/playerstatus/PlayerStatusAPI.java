@@ -101,6 +101,8 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 						playerStatus.wait();
 					}
 
+					playerStatusCache.remove(username);
+					
 					return playerStatus.getValue();
 				}
 
