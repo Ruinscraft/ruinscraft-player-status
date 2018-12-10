@@ -37,6 +37,12 @@ public class PlayerStatusPlugin extends JavaPlugin {
 			playerStorage = new RedisPlayerStorage(getConfig().getConfigurationSection("storage.redis"));
 		}
 
+		if (playerStorage == null) {
+			warning("Player storage not configured");
+			getServer().getPluginManager().disablePlugin(this);
+			return;
+		}
+		
 		api = new PlayerStatusAPI();
 
 		/* Setup Vault Permissions */
@@ -58,7 +64,6 @@ public class PlayerStatusPlugin extends JavaPlugin {
 		getServer().getPluginManager().registerEvents(new JoinListener(), this);
 		getCommand("list").setExecutor(new ListCommand());
 		getCommand("vanish").setExecutor(new VanishCommand());
-
 	}
 
 	@Override

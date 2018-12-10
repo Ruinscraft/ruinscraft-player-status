@@ -5,15 +5,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteArrayDataInput;
@@ -33,8 +34,9 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 	private BlockingQueue<Multimap<String, String>> onlineListQueue;
 
 	public PlayerStatusAPI() {
-		this.playerStatusQueue = new LinkedBlockingQueue<>();
-		this.onlineListQueue = new LinkedBlockingQueue<>();
+		this.listCache = HashMultimap.create();
+		this.playerStatusQueue = new ArrayBlockingQueue<>(32);
+		this.onlineListQueue = new ArrayBlockingQueue<>(32);
 
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskTimerAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
 			if (!PlayerStatusPlugin.getInstance().isEnabled()) {
@@ -76,6 +78,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 				}
 
 				ByteArrayDataOutput out = ByteStreams.newDataOutput();
+				
 				out.writeUTF("LastOnline");
 				out.writeUTF(username);
 
@@ -129,22 +132,6 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		};
 	}
 
-	public Multimap<String, String> getOnline() {
-		return listCache;
-	}
-
-	public List<String> getOnlyPlayers() {
-		List<String> players = new ArrayList<>();
-
-		Multimap<String, String> playersWithServers = getOnline();
-
-		for (String server : playersWithServers.keySet()) {
-			players.addAll(playersWithServers.get(server));
-		}
-
-		return players;
-	}
-
 	public Callable<Void> setVanished(String username, boolean vanished) {
 		return PlayerStatusPlugin.getInstance().getPlayerStorage().setVanished(username, vanished);
 	}
@@ -155,6 +142,14 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
 	public Callable<List<String>> getVanished() {
 		return PlayerStatusPlugin.getInstance().getPlayerStorage().getVanished();
+	}
+	
+	public Multimap<String, String> getOnline() {
+		return listCache;
+	}
+
+	public List<String> getOnlyPlayers() {
+		return Lists.newArrayList(getOnline().values());
 	}
 
 	@Override
@@ -183,7 +178,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
 			break;
 		case "ServerPlayers":
-			Multimap<String, String> allPlayers = HashMultimap.create();
+			Multimap<String, String> list = HashMultimap.create();
 
 			int serverCount = in.readInt();
 
@@ -198,11 +193,10 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 					serverPlayers.add(playerName);
 				}
 
-				allPlayers.putAll(serverName, serverPlayers);
-
+				list.putAll(serverName, serverPlayers);
 			} while (--serverCount > 0);
 
-			onlineListQueue.offer(allPlayers);
+			onlineListQueue.offer(list);
 
 			break;
 		}

@@ -14,13 +14,13 @@ public class JoinListener implements Listener {
 
 	@EventHandler
 	public void onJoin(PlayerJoinEvent event) {
+		String group = PlayerStatusPlugin.getVaultPerms().getPrimaryGroup(event.getPlayer());
+		
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
 			try {
 				List<String> vanished = PlayerStatusPlugin.getInstance().getAPI().getVanished().call();
 				PlayerStatusPlugin.getInstance().getServer().getScheduler().runTask(PlayerStatusPlugin.getInstance(), () -> {
 					handleVanished(vanished);
-					
-					String group = PlayerStatusPlugin.getVaultPerms().getPrimaryGroup(event.getPlayer());
 					
 					try {
 						PlayerStatusPlugin.getInstance().getPlayerStorage().setGroup(event.getPlayer().getName(), group).call();

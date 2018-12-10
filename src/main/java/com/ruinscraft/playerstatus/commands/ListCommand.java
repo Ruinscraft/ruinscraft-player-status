@@ -24,7 +24,6 @@ public class ListCommand implements CommandExecutor {
 				return;
 			}
 
-			/* This is actually run sync, it is always cached */
 			Multimap<String, String> players = PlayerStatusPlugin.getInstance().getAPI().getOnline();
 
 			if (players == null || players.isEmpty()) {
@@ -77,7 +76,7 @@ public class ListCommand implements CommandExecutor {
 							serverPlayers.add(ChatColor.GREEN + username);
 						}
 
-						else if (group.contains("vip")) {
+						else if (group.startsWith("vip")) {
 							serverPlayers.add(ChatColor.DARK_PURPLE + username);
 						} 
 					} else {
@@ -88,7 +87,7 @@ public class ListCommand implements CommandExecutor {
 				currentListView.put(server, serverName + String.join(ChatColor.GRAY + ", ", serverPlayers));
 				currentListView.put("Staff online", ChatColor.GOLD + "Staff online: " + ChatColor.YELLOW + "(" + staffOnline.size() + ")" + ChatColor.GOLD + ": " + String.join(ChatColor.GRAY + ", ", staffOnline));
 			}
-		}, 20L, 20L);
+		}, 40L, 40L);
 	}
 
 	@Override
