@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -15,7 +16,6 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
@@ -23,34 +23,32 @@ import com.google.common.io.ByteStreams;
 
 public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseable {
 
-	public static final long ONLINE 						= 0L;
-	public static final long OFFLINE 						= -1L;
-	public static final long VANISHED 						= -2L;
 	private static final long REFRESH_LIST_PERIOD_TICKS 	= 50L;
 	private static final String MESSAGING_CHANNEL 			= "RedisBungee";
 
 	private Multimap<String, String> listCache;
-	private BlockingQueue<Map.Entry<String, Long>> playerStatusQueue;
+	private Map<String, PlayerStatus> playerStatusCache;
+	//private BlockingQueue<Map.Entry<String, Long>> playerStatusQueue;
 	private BlockingQueue<Multimap<String, String>> onlineListQueue;
 
 	public PlayerStatusAPI() {
 		this.listCache = HashMultimap.create();
-		this.playerStatusQueue = new ArrayBlockingQueue<>(32);
+		this.playerStatusCache = new ConcurrentHashMap<>();
 		this.onlineListQueue = new ArrayBlockingQueue<>(32);
 
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskTimerAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
 			if (PlayerStatusPlugin.getInstance() == null) {
 				return;
 			}
-			
+
 			if (!PlayerStatusPlugin.getInstance().isEnabled()) {
 				return;
 			}
-			
+
 			if (Bukkit.getOnlinePlayers().size() < 1) {
 				return;
 			}
-			
+
 			try {
 				Multimap<String, String> temp = getOnlineForce().call();
 				Multimap<String, String> nonVanished = HashMultimap.create();
@@ -78,15 +76,15 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 			@Override
 			public Long call() throws Exception {
 				if (username == null) {
-					return OFFLINE;
+					return PlayerStatus.OFFLINE;
 				}
 
 				if (isVanished(username).call()) {
-					return VANISHED;
+					return PlayerStatus.VANISHED;
 				}
 
 				ByteArrayDataOutput out = ByteStreams.newDataOutput();
-				
+
 				out.writeUTF("LastOnline");
 				out.writeUTF(username);
 
@@ -95,22 +93,18 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 				if (player.isPresent()) {
 					player.get().sendPluginMessage(PlayerStatusPlugin.getInstance(), MESSAGING_CHANNEL, out.toByteArray());
 
-					Map.Entry<String, Long> status = playerStatusQueue.take();
+					PlayerStatus playerStatus = new PlayerStatus();
 
-					while (!status.getKey().equalsIgnoreCase(username)) {
-						/* Put it back */
-						playerStatusQueue.offer(status);
+					playerStatusCache.put(username, playerStatus);
 
-						if (playerStatusQueue.peek() != status) {
-							/* Get the next */
-							status = playerStatusQueue.take();
-						}
+					synchronized (playerStatus) {
+						playerStatus.wait();
 					}
 
-					return status.getValue();
+					return playerStatus.getValue();
 				}
 
-				return OFFLINE;
+				return PlayerStatus.OFFLINE;
 			}
 		};
 	}
@@ -151,7 +145,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 	public Callable<List<String>> getVanished() {
 		return PlayerStatusPlugin.getInstance().getPlayerStorage().getVanished();
 	}
-	
+
 	public Multimap<String, String> getOnline() {
 		return listCache;
 	}
@@ -180,9 +174,13 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 			 *	0		currently online
 			 * 	+Z		last seen epoch time
 			 */
-			long online = in.readLong();
+			PlayerStatus playerStatus = playerStatusCache.get(argument);
 
-			playerStatusQueue.offer(Maps.immutableEntry(argument, online));
+			playerStatus.setValue(in.readLong());
+
+			synchronized (playerStatus) {
+				playerStatus.notify();
+			}
 
 			break;
 		case "ServerPlayers":
@@ -213,7 +211,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 	@Override
 	public void close() {
 		listCache.clear();
-		playerStatusQueue.clear();
+		playerStatusCache.clear();
 		onlineListQueue.clear();
 	}
 
