@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -20,7 +21,15 @@ public class ListCommand implements CommandExecutor {
 
 	public ListCommand() {
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskTimerAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
+			if (PlayerStatusPlugin.getInstance() == null) {
+				return;
+			}
+			
 			if (!PlayerStatusPlugin.getInstance().isEnabled()) {
+				return;
+			}
+			
+			if (Bukkit.getOnlinePlayers().size() < 1) {
 				return;
 			}
 
