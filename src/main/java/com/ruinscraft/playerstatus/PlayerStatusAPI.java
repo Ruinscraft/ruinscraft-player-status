@@ -9,6 +9,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -23,18 +24,17 @@ import com.google.common.io.ByteStreams;
 
 public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseable {
 
-	private static final long REFRESH_LIST_PERIOD_TICKS 	= 50L;
-	private static final String MESSAGING_CHANNEL 			= "RedisBungee";
+	private static final long REFRESH_LIST_PERIOD_TICKS = 50L;
+	private static final String MESSAGING_CHANNEL = "RedisBungee";
 
 	private Multimap<String, String> listCache;
-	private Map<String, PlayerStatus> playerStatusCache;
-	//private BlockingQueue<Map.Entry<String, Long>> playerStatusQueue;
-	private BlockingQueue<Multimap<String, String>> onlineListQueue;
+	private final Map<String, PlayerStatus> playerStatusCache;
+	private final BlockingQueue<Multimap<String, String>> onlineListQueue;
 
 	public PlayerStatusAPI() {
 		this.listCache = HashMultimap.create();
 		this.playerStatusCache = new ConcurrentHashMap<>();
-		this.onlineListQueue = new ArrayBlockingQueue<>(32);
+		this.onlineListQueue = new ArrayBlockingQueue<>(8);
 
 		PlayerStatusPlugin.getInstance().getServer().getScheduler().runTaskTimerAsynchronously(PlayerStatusPlugin.getInstance(), () -> {
 			if (PlayerStatusPlugin.getInstance() == null) {
@@ -68,7 +68,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		}, 20L, REFRESH_LIST_PERIOD_TICKS);
+		}, REFRESH_LIST_PERIOD_TICKS, REFRESH_LIST_PERIOD_TICKS);
 	}
 
 	public Callable<Long> getPlayerStatus(String username) {
@@ -90,20 +90,30 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
 				Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
 
+				/* 
+				 * There has to be a player present to send a plugin message 
+				 * https://wiki.vg/Plugin_channels
+				 */
 				if (player.isPresent()) {
 					player.get().sendPluginMessage(PlayerStatusPlugin.getInstance(), MESSAGING_CHANNEL, out.toByteArray());
 
-					PlayerStatus playerStatus = new PlayerStatus();
+					PlayerStatus status = new PlayerStatus();
 
-					playerStatusCache.put(username, playerStatus);
+					playerStatusCache.put(username, status);
 
-					synchronized (playerStatus) {
-						playerStatus.wait();
+					/* 
+					 * Wait for notify() in the plugin message listener 
+					 * Timeout after 3 seconds with a status of -1 (OFFLINE)
+					 */
+					synchronized (status) {
+						status.wait(TimeUnit.SECONDS.toMillis(3));
 					}
 
-					return playerStatus.getValue();
+					/* Return the value set by the plugin message listener */
+					return status.getValue();
 				}
 
+				/* If all else fails, return offline */
 				return PlayerStatus.OFFLINE;
 			}
 		};
@@ -168,22 +178,31 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 		switch (command) {
 		case "LastOnline":
 			/*	
-			 * 	https://github.com/minecrafter/RedisBungee/wiki/API#plugin-messaging-bukkit
+			 * https://github.com/minecrafter/RedisBungee/wiki/API#plugin-messaging-bukkit
 			 * 
-			 * 	-1		never joined 
-			 *	0		currently online
-			 * 	+Z		last seen epoch time
+			 * -1		never joined 
+			 * 0		currently online
+			 * +Z		last seen epoch time
 			 */
-			PlayerStatus playerStatus = playerStatusCache.get(argument);
+			PlayerStatus status = playerStatusCache.get(argument);
 
-			playerStatus.setValue(in.readLong());
+			status.setValue(in.readLong());
 
-			synchronized (playerStatus) {
-				playerStatus.notify();
+			/* Notify that the status has been set */
+			synchronized (status) {
+				status.notify();
 			}
 
 			break;
 		case "ServerPlayers":
+			/*
+			 * int : server count
+			 * for n of server count
+			 *		string : server name
+			 *		int : server player count
+			 *			for n of player count
+			 *				string : player name
+			 */
 			Multimap<String, String> list = HashMultimap.create();
 
 			int serverCount = in.readInt();
