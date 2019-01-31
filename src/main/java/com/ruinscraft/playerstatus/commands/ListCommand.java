@@ -56,36 +56,33 @@ public class ListCommand implements CommandExecutor {
 						e.printStackTrace();
 					}
 
-					if (group != null && !group.equals("member")) {
-						if (group.equals("owner")) {
-							username = ChatColor.DARK_RED + username;
-							staffOnline.add(username);
-						}
-
-						else if (group.equals("admin")) {
-							username = ChatColor.GOLD + username;
-							staffOnline.add(username);
-						}
-
-						else if (group.equals("moderator")) {
-							username = ChatColor.BLUE + username;
-							staffOnline.add(username);
-						}
-
-						else if (group.equals("helper")) {
-							username = ChatColor.AQUA + username;
-							staffOnline.add(username);
-						}
-
-						else if (group.equals("builder")) {
-							username = ChatColor.GREEN + username;
-						}
-
-						else if (group.startsWith("vip")) {
+					switch (group) {
+					case "owner":
+						username = ChatColor.DARK_RED + username;
+						staffOnline.add(username);
+						break;
+					case "admin":
+						username = ChatColor.GOLD + username;
+						staffOnline.add(username);
+						break;
+					case "moderator":
+						username = ChatColor.BLUE + username;
+						staffOnline.add(username);
+						break;
+					case "helper":
+						username = ChatColor.AQUA + username;
+						staffOnline.add(username);
+						break;
+					case "builder":
+						username = ChatColor.GREEN + username;
+						break;
+					default:
+						if (group.startsWith("vip")) {
 							username = ChatColor.DARK_PURPLE + username;
-						} 
-					} else {
-						username = ChatColor.GRAY + username;
+						} else {
+							username = ChatColor.GRAY + username;
+						}
+						break;
 					}
 					/* End formatting */
 
