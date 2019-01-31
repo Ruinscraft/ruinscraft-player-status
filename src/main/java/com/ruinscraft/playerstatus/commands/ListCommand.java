@@ -16,6 +16,8 @@ import com.ruinscraft.playerstatus.PlayerStatusPlugin;
 
 public class ListCommand implements CommandExecutor {
 
+	private static final int MAX_PLAYERS_IN_LIST_PER_SERVER = 25;
+
 	/* Includes "Staff online" */
 	private static Map<String, String> currentListView = new HashMap<>();
 
@@ -24,11 +26,11 @@ public class ListCommand implements CommandExecutor {
 			if (PlayerStatusPlugin.getInstance() == null) {
 				return;
 			}
-			
+
 			if (!PlayerStatusPlugin.getInstance().isEnabled()) {
 				return;
 			}
-			
+
 			if (Bukkit.getOnlinePlayers().size() < 1) {
 				return;
 			}
@@ -45,14 +47,8 @@ public class ListCommand implements CommandExecutor {
 				String serverName = ChatColor.GOLD + server + ChatColor.YELLOW + " (" + players.get(server).size() + ")" + ChatColor.GOLD + ": ";
 				List<String> serverPlayers = new ArrayList<>();
 
-				int maxPlayers = 25;
-
 				for (String username : players.get(server)) {
-					if (maxPlayers-- == 1) {
-						serverPlayers.add(ChatColor.GRAY + "and " + (players.get(server).size() - 25) + " more");
-						break;
-					}
-
+					/* Formatting */
 					String group = null;
 					try {
 						group = PlayerStatusPlugin.getInstance().getPlayerStorage().getGroup(username).call();
@@ -62,34 +58,44 @@ public class ListCommand implements CommandExecutor {
 
 					if (group != null && !group.equals("member")) {
 						if (group.equals("owner")) {
-							serverPlayers.add(ChatColor.DARK_RED + username);
-							staffOnline.add(ChatColor.DARK_RED + username);
+							username = ChatColor.DARK_RED + username;
+							staffOnline.add(username);
 						}
 
 						else if (group.equals("admin")) {
-							serverPlayers.add(ChatColor.GOLD + username);
-							staffOnline.add(ChatColor.GOLD + username);
+							username = ChatColor.GOLD + username;
+							staffOnline.add(username);
 						}
 
 						else if (group.equals("moderator")) {
-							serverPlayers.add(ChatColor.BLUE + username);
-							staffOnline.add(ChatColor.BLUE + username);
+							username = ChatColor.BLUE + username;
+							staffOnline.add(username);
 						}
 
 						else if (group.equals("helper")) {
-							serverPlayers.add(ChatColor.AQUA + username);
-							staffOnline.add(ChatColor.AQUA + username);
+							username = ChatColor.AQUA + username;
+							staffOnline.add(username);
 						}
 
 						else if (group.equals("builder")) {
-							serverPlayers.add(ChatColor.GREEN + username);
+							username = ChatColor.GREEN + username;
 						}
 
 						else if (group.startsWith("vip")) {
-							serverPlayers.add(ChatColor.DARK_PURPLE + username);
+							username = ChatColor.DARK_PURPLE + username;
 						} 
 					} else {
-						serverPlayers.add(ChatColor.GRAY + username);
+						username = ChatColor.GRAY + username;
+					}
+					/* End formatting */
+
+					/* Generate list */
+					if (serverPlayers.size() <= MAX_PLAYERS_IN_LIST_PER_SERVER) {
+						serverPlayers.add(username);
+					}
+
+					else if (serverPlayers.size() == MAX_PLAYERS_IN_LIST_PER_SERVER) {
+						serverPlayers.add(ChatColor.GRAY + "and " + (players.get(server).size() - MAX_PLAYERS_IN_LIST_PER_SERVER) + " more");
 					}
 				}
 
