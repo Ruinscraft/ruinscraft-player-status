@@ -1,6 +1,7 @@
 package com.ruinscraft.playerstatus;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -35,9 +36,7 @@ public class JoinListener implements Listener {
 	}
 
 	public static void handleVanished(List<String> vanished) {
-		for (String _vanished : vanished) {
-			Player vanishedPlayer = Bukkit.getPlayer(_vanished);
-			
+		for (Player vanishedPlayer : vanished.stream().map(t -> Bukkit.getPlayer(t)).collect(Collectors.toSet())) {
 			if (vanishedPlayer != null && vanishedPlayer.isOnline()) {
 				for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
 					if (onlinePlayer.equals(vanishedPlayer)) {
