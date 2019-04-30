@@ -1,104 +1,118 @@
 package com.ruinscraft.playerstatus;
 
-import java.util.List;
-
-import org.bukkit.plugin.RegisteredServiceProvider;
-import org.bukkit.plugin.java.JavaPlugin;
-
 import com.ruinscraft.playerstatus.commands.ListCommand;
 import com.ruinscraft.playerstatus.commands.VanishCommand;
 import com.ruinscraft.playerstatus.storage.PlayerStorage;
 import com.ruinscraft.playerstatus.storage.RedisPlayerStorage;
-
 import net.milkbowl.vault.permission.Permission;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.List;
 
 public class PlayerStatusPlugin extends JavaPlugin {
 
-	private static PlayerStatusPlugin instance;
-	private static Permission vaultPerms;
-	
-	private PlayerStorage playerStorage;
-	private PlayerStatusAPI api;
+    private PlayerStorage playerStorage;
+    private PlayerStatusAPI api;
 
-	@Override
-	public void onEnable() {
-		instance = this;
+    @Override
+    public void onEnable() {
+        singleton = this;
 
-		saveDefaultConfig();
+        saveDefaultConfig();
 
-		/* Check for Vault */
-		if (getServer().getPluginManager().getPlugin("Vault") == null) {
-			warning("Vault required");
-			getServer().getPluginManager().disablePlugin(this);
-			return;
-		}
+        /* Setup Vault */
+        if (getServer().getPluginManager().getPlugin("Vault") == null) {
+            warning("Vault required");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        else {
+            if (!setupVault(this)) {
+                warning("Error setting up Vault");
+                getServer().getPluginManager().disablePlugin(this);
+                return;
+            }
+        }
 
-		if (getConfig().getBoolean("storage.redis.use")) {
-			playerStorage = new RedisPlayerStorage(getConfig().getConfigurationSection("storage.redis"));
-		}
+        /* Setup player storage */
+        if (getConfig().getBoolean("storage.redis.use")) {
+            playerStorage = new RedisPlayerStorage(getConfig().getConfigurationSection("storage.redis"));
+        }
 
-		if (playerStorage == null) {
-			warning("Player storage not configured");
-			getServer().getPluginManager().disablePlugin(this);
-			return;
-		}
-		
-		api = new PlayerStatusAPI();
+        if (playerStorage == null) {
+            warning("Player storage not configured");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
-		/* Setup Vault Permissions */
-		RegisteredServiceProvider<Permission> rsp = getServer().getServicesManager().getRegistration(Permission.class);
-        vaultPerms = rsp.getProvider();
-		
-		getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
-		getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
-		getServer().getScheduler().runTaskAsynchronously(this, () -> {
-			try {
-				List<String> vanished = api.getVanished().call();
-				getServer().getScheduler().runTask(PlayerStatusPlugin.this, () -> {
-					JoinListener.handleVanished(vanished);
-				});
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
-		getServer().getPluginManager().registerEvents(new JoinListener(), this);
-		getCommand("list").setExecutor(new ListCommand());
-		getCommand("vanish").setExecutor(new VanishCommand());
-	}
+        api = new PlayerStatusAPI();
 
-	@Override
-	public void onDisable() {
-		getServer().getMessenger().unregisterOutgoingPluginChannel(this, "RedisBungee");
-		getServer().getMessenger().unregisterIncomingPluginChannel(this, "RedisBungee", api);
-		getServer().getScheduler().cancelTasks(this);
+        /* Register plugin channels */
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
+        getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
 
-		api.close();
-		playerStorage.close();
-	}
+        /* Handle vanished players in case of a reload */
+        getServer().getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                List<String> vanished = api.getVanished().call();
+                getServer().getScheduler().runTask(PlayerStatusPlugin.this, () -> {
+                    JoinListener.handleVanished(vanished);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
 
-	public PlayerStorage getPlayerStorage() {
-		return playerStorage;
-	}
+        /* Register listeners */
+        getServer().getPluginManager().registerEvents(new JoinListener(), this);
 
-	public PlayerStatusAPI getAPI() {
-		return api;
-	}
+        /* Register commands */
+        getCommand("list").setExecutor(new ListCommand());
+        getCommand("vanish").setExecutor(new VanishCommand());
+    }
 
-	public static PlayerStatusPlugin getInstance() {
-		return instance;
-	}
-	
-	public static Permission getVaultPerms() {
-		return vaultPerms;
-	}
+    @Override
+    public void onDisable() {
+        getServer().getMessenger().unregisterOutgoingPluginChannel(this, "RedisBungee");
+        getServer().getMessenger().unregisterIncomingPluginChannel(this, "RedisBungee", api);
+        getServer().getScheduler().cancelTasks(this);
 
-	/* Logging */
-	public static void info(String message) {
-		instance.getLogger().info(message);
-	}
+        api.close();
+        playerStorage.close();
 
-	public static void warning(String message) {
-		instance.getLogger().warning(message);
-	}
+        singleton = null;
+    }
+
+    public PlayerStorage getPlayerStorage() {
+        return playerStorage;
+    }
+
+    public PlayerStatusAPI getAPI() {
+        return api;
+    }
+
+    /* static =========================== */
+    private static PlayerStatusPlugin singleton;
+    private static Permission vaultPerms;
+
+    private static boolean setupVault(Plugin plugin) {
+        RegisteredServiceProvider<Permission> rsp = plugin.getServer().getServicesManager().getRegistration(Permission.class);
+        return (vaultPerms = rsp.getProvider()) != null;
+    }
+
+    public static Permission getVaultPerms() {
+        return vaultPerms;
+    }
+
+    public static PlayerStatusPlugin get() {
+        return singleton;
+    }
+
+    public static void warning(String message) {
+        singleton.getLogger().warning(message);
+    }
+    /* static =========================== */
 
 }
