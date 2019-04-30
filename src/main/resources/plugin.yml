@@ -10,5 +10,4 @@ commands:
     aliases: [l, who, online, glist, globallist, listeveryonewhoisontheserver, whosonline]
   vanish:
     description: Vanish from other players
-    aliases: [v, van]
     permission: ruinscraft.command.vanish
