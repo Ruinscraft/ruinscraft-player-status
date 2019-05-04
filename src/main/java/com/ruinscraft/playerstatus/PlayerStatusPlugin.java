@@ -5,6 +5,7 @@ import com.ruinscraft.playerstatus.commands.VanishCommand;
 import com.ruinscraft.playerstatus.storage.PlayerStorage;
 import com.ruinscraft.playerstatus.storage.RedisPlayerStorage;
 import net.milkbowl.vault.permission.Permission;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -16,9 +17,19 @@ public class PlayerStatusPlugin extends JavaPlugin {
     private PlayerStorage playerStorage;
     private PlayerStatusAPI api;
 
+
+
     @Override
     public void onEnable() {
         singleton = this;
+
+        is_112 = Bukkit.getVersion().contains("1.12") ? true : false;
+
+        if (is_112) {
+            pluginChannel = "RedisBungee";
+        } else {
+            pluginChannel = "legacy:redisbungee";
+        }
 
         saveDefaultConfig();
 
@@ -50,8 +61,8 @@ public class PlayerStatusPlugin extends JavaPlugin {
         api = new PlayerStatusAPI();
 
         /* Register plugin channels */
-        getServer().getMessenger().registerOutgoingPluginChannel(this, "RedisBungee");
-        getServer().getMessenger().registerIncomingPluginChannel(this, "RedisBungee", api);
+        getServer().getMessenger().registerOutgoingPluginChannel(this, pluginChannel);
+        getServer().getMessenger().registerIncomingPluginChannel(this, pluginChannel, api);
 
         /* Handle vanished players in case of a reload */
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -75,8 +86,8 @@ public class PlayerStatusPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        getServer().getMessenger().unregisterOutgoingPluginChannel(this, "RedisBungee");
-        getServer().getMessenger().unregisterIncomingPluginChannel(this, "RedisBungee", api);
+        getServer().getMessenger().unregisterOutgoingPluginChannel(this, pluginChannel);
+        getServer().getMessenger().unregisterIncomingPluginChannel(this, pluginChannel, api);
         getServer().getScheduler().cancelTasks(this);
 
         api.close();
@@ -96,6 +107,8 @@ public class PlayerStatusPlugin extends JavaPlugin {
     /* static =========================== */
     private static PlayerStatusPlugin singleton;
     private static Permission vaultPerms;
+    private static boolean is_112;
+    private static String pluginChannel;
 
     private static boolean setupVault(Plugin plugin) {
         RegisteredServiceProvider<Permission> rsp = plugin.getServer().getServicesManager().getRegistration(Permission.class);
@@ -104,6 +117,14 @@ public class PlayerStatusPlugin extends JavaPlugin {
 
     public static Permission getVaultPerms() {
         return vaultPerms;
+    }
+
+    public static boolean is_112() {
+        return is_112;
+    }
+
+    public static String getPluginChannel() {
+        return pluginChannel;
     }
 
     public static PlayerStatusPlugin get() {

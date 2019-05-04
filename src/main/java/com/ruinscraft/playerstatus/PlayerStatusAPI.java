@@ -16,7 +16,6 @@ import java.util.concurrent.*;
 public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseable {
 
     private static final long REFRESH_LIST_PERIOD_TICKS = 50L;
-    private static final String MESSAGING_CHANNEL = "RedisBungee";
 
     private Multimap<String, String> listCache;
     private final Map<String, PlayerStatus> playerStatusCache;
@@ -78,7 +77,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
              * https://wiki.vg/Plugin_channels
              */
             if (player.isPresent()) {
-                player.get().sendPluginMessage(PlayerStatusPlugin.get(), MESSAGING_CHANNEL, out.toByteArray());
+                player.get().sendPluginMessage(PlayerStatusPlugin.get(), PlayerStatusPlugin.getPluginChannel(), out.toByteArray());
 
                 PlayerStatus status = new PlayerStatus();
 
@@ -110,7 +109,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
             Optional<? extends Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
 
             if (player.isPresent()) {
-                player.get().sendPluginMessage(PlayerStatusPlugin.get(), MESSAGING_CHANNEL, out.toByteArray());
+                player.get().sendPluginMessage(PlayerStatusPlugin.get(), PlayerStatusPlugin.getPluginChannel(), out.toByteArray());
 
                 try {
                     return onlineListQueue.take();
@@ -145,7 +144,7 @@ public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseab
 
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
-        if (!channel.equals(MESSAGING_CHANNEL)) {
+        if (!channel.equals(PlayerStatusPlugin.getPluginChannel())) {
             return;
         }
 
