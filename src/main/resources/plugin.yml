@@ -12,3 +12,6 @@ commands:
   vanish:
     description: Vanish from other players
     permission: ruinscraft.command.vanish
+  mblist:
+    description: Legacy command
+    permission: ruinscraft.command.mblist

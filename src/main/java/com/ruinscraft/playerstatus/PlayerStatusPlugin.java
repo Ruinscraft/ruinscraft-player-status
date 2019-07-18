@@ -1,6 +1,7 @@
 package com.ruinscraft.playerstatus;
 
 import com.ruinscraft.playerstatus.commands.ListCommand;
+import com.ruinscraft.playerstatus.commands.MBListCommand;
 import com.ruinscraft.playerstatus.commands.VanishCommand;
 import com.ruinscraft.playerstatus.storage.PlayerStorage;
 import com.ruinscraft.playerstatus.storage.RedisPlayerStorage;
@@ -79,6 +80,7 @@ public class PlayerStatusPlugin extends JavaPlugin {
         /* Register commands */
         getCommand("list").setExecutor(new ListCommand());
         getCommand("vanish").setExecutor(new VanishCommand());
+        getCommand("mblist").setExecutor(new MBListCommand());
     }
 
     @Override
