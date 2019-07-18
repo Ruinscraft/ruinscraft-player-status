@@ -25,7 +25,7 @@ public class VanishCommand implements CommandExecutor {
 
                 boolean vanished = PlayerStatusPlugin.get().getAPI().isVanished(player.getName()).call();
 
-                if (!player.isOnline()) {
+                if (player == null || !player.isOnline()) {
                     return;
                 }
 
@@ -49,23 +49,25 @@ public class VanishCommand implements CommandExecutor {
     }
 
     private static void handleVanish(Player player, boolean vanished) {
-        if (!player.isOnline()) {
-            return;
-        }
-
-        if (vanished) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
-        } else {
-            player.removePotionEffect(PotionEffectType.INVISIBILITY);
-        }
-
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            if (vanished) {
-                onlinePlayer.hidePlayer(PlayerStatusPlugin.get(), player);
-            } else {
-                onlinePlayer.showPlayer(PlayerStatusPlugin.get(), player);
+        PlayerStatusPlugin.get().getServer().getScheduler().runTask(PlayerStatusPlugin.get(), () -> {
+            if (player == null || !player.isOnline()) {
+                return;
             }
-        }
+
+            if (vanished) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
+            } else {
+                player.removePotionEffect(PotionEffectType.INVISIBILITY);
+            }
+
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                if (vanished) {
+                    onlinePlayer.hidePlayer(PlayerStatusPlugin.get(), player);
+                } else {
+                    onlinePlayer.showPlayer(PlayerStatusPlugin.get(), player);
+                }
+            }
+        });
     }
 
 }

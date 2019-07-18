@@ -17,8 +17,6 @@ public class PlayerStatusPlugin extends JavaPlugin {
     private PlayerStorage playerStorage;
     private PlayerStatusAPI api;
 
-
-
     @Override
     public void onEnable() {
         singleton = this;
@@ -38,8 +36,7 @@ public class PlayerStatusPlugin extends JavaPlugin {
             warning("Vault required");
             getServer().getPluginManager().disablePlugin(this);
             return;
-        }
-        else {
+        } else {
             if (!setupVault(this)) {
                 warning("Error setting up Vault");
                 getServer().getPluginManager().disablePlugin(this);

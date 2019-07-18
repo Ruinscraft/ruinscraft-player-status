@@ -15,7 +15,14 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        String group = PlayerStatusPlugin.getVaultPerms().getPrimaryGroup(event.getPlayer());
+        final Player player = event.getPlayer();
+
+        /* temporarily remove any invis effect */
+        if (player.hasPotionEffect(PotionEffectType.INVISIBILITY) && player.hasPermission("ruinscraft.command.vanish")) {
+            player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        }
+
+        String group = PlayerStatusPlugin.getVaultPerms().getPrimaryGroup(player);
 
         PlayerStatusPlugin.get().getServer().getScheduler().runTaskAsynchronously(PlayerStatusPlugin.get(), () -> {
             try {
@@ -24,7 +31,7 @@ public class JoinListener implements Listener {
                     handleVanished(vanished);
 
                     try {
-                        PlayerStatusPlugin.get().getPlayerStorage().setGroup(event.getPlayer().getName(), group).call();
+                        PlayerStatusPlugin.get().getPlayerStorage().setGroup(player.getName(), group).call();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -35,18 +42,20 @@ public class JoinListener implements Listener {
         });
     }
 
-    public static void handleVanished(List<String> vanished) {
-        for (Player vanishedPlayer : vanished.stream().map(t -> Bukkit.getPlayer(t)).collect(Collectors.toSet())) {
-            if (vanishedPlayer != null && vanishedPlayer.isOnline()) {
-                for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                    if (onlinePlayer.equals(vanishedPlayer)) {
-                        vanishedPlayer.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
-                        continue;
+    public static void handleVanished(final List<String> vanished) {
+        PlayerStatusPlugin.get().getServer().getScheduler().runTask(PlayerStatusPlugin.get(), () -> {
+            for (Player vanishedPlayer : vanished.stream().map(t -> Bukkit.getPlayer(t)).collect(Collectors.toSet())) {
+                if (vanishedPlayer != null && vanishedPlayer.isOnline()) {
+                    for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                        if (onlinePlayer.equals(vanishedPlayer)) {
+                            vanishedPlayer.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1));
+                            continue;
+                        }
+                        onlinePlayer.hidePlayer(PlayerStatusPlugin.get(), vanishedPlayer);
                     }
-                    onlinePlayer.hidePlayer(PlayerStatusPlugin.get(), vanishedPlayer);
                 }
             }
-        }
+        });
     }
 
 }

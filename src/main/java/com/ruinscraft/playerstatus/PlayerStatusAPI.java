@@ -15,7 +15,7 @@ import java.util.concurrent.*;
 
 public final class PlayerStatusAPI implements PluginMessageListener, AutoCloseable {
 
-    private static final long REFRESH_LIST_PERIOD_TICKS = 50L;
+    private static final long REFRESH_LIST_PERIOD_TICKS = 60L;
 
     private Multimap<String, String> listCache;
     private final Map<String, PlayerStatus> playerStatusCache;

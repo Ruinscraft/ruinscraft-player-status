@@ -15,10 +15,11 @@ import java.util.Map;
 
 public class ListCommand implements CommandExecutor {
 
-    private static final int MAX_PLAYERS_IN_LIST_PER_SERVER = 25;
+    private static final int MAX_PLAYERS_IN_LIST_PER_SERVER = 35;
 
     /* Includes "Staff online" as a key */
-    private static Map<String, String> currentListView = new HashMap<>();
+    private static Map<String, String> concatListView = new HashMap<>();
+    private static Map<String, String> fullListView = new HashMap<>();
 
     public ListCommand() {
         PlayerStatusPlugin.get().getServer().getScheduler()
@@ -27,6 +28,7 @@ public class ListCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        boolean showAll = label.toLowerCase().equals("listeveryonewhoisontheserver");
         Multimap<String, String> players = PlayerStatusPlugin.get().getAPI().getOnline();
         for (String server : players.keySet()) {
             /* Check if the player has permission to view the server */
@@ -35,9 +37,13 @@ public class ListCommand implements CommandExecutor {
                 continue;
             }
 
-            sender.sendMessage(currentListView.get(server));
+            if (showAll) {
+                sender.sendMessage(fullListView.get(server));
+            } else {
+                sender.sendMessage(concatListView.get(server));
+            }
         }
-        sender.sendMessage(currentListView.get("Staff online"));
+        sender.sendMessage(concatListView.get("Staff online"));
         sender.sendMessage(ChatColor.GOLD + "Total players online: " + ChatColor.YELLOW + PlayerStatusPlugin.get().getAPI().getOnlyPlayers().size());
         return true;
     }
@@ -61,7 +67,8 @@ public class ListCommand implements CommandExecutor {
 
             for (String server : players.keySet()) {
                 String serverName = ChatColor.GOLD + server + ChatColor.YELLOW + " (" + players.get(server).size() + ")" + ChatColor.GOLD + ": ";
-                List<String> serverPlayers = new ArrayList<>();
+                List<String> concatServerPlayers = new ArrayList<>();
+                List<String> allServerPlayers = new ArrayList<>();
 
                 for (String username : players.get(server)) {
                     /* Formatting */
@@ -93,7 +100,7 @@ public class ListCommand implements CommandExecutor {
                             username = ChatColor.GREEN + username;
                             break;
                         default:
-                            if (group.startsWith("vip")) {
+                            if (group.startsWith("vip") || group.contains("sponsor")) {
                                 username = ChatColor.DARK_PURPLE + username;
                             } else {
                                 username = ChatColor.GRAY + username;
@@ -102,16 +109,19 @@ public class ListCommand implements CommandExecutor {
                     }
                     /* End formatting */
 
-                    /* Generate list */
-                    if (serverPlayers.size() <= MAX_PLAYERS_IN_LIST_PER_SERVER) {
-                        serverPlayers.add(username);
-                    } else if (serverPlayers.size() == MAX_PLAYERS_IN_LIST_PER_SERVER) {
-                        serverPlayers.add(ChatColor.GRAY + "and " + (players.get(server).size() - MAX_PLAYERS_IN_LIST_PER_SERVER) + " more");
+                    /* Generate lists */
+                    allServerPlayers.add(username);
+                    if (concatServerPlayers.size() <= MAX_PLAYERS_IN_LIST_PER_SERVER) {
+                        concatServerPlayers.add(username);
+                    } else if (concatServerPlayers.size() >= MAX_PLAYERS_IN_LIST_PER_SERVER) {
+                        concatServerPlayers.add(ChatColor.GRAY + "and " + (players.get(server).size() - MAX_PLAYERS_IN_LIST_PER_SERVER) + " more");
                     }
                 }
 
-                currentListView.put(server, serverName + String.join(ChatColor.GRAY + ", ", serverPlayers));
-                currentListView.put("Staff online", ChatColor.GOLD + "Staff online: " + ChatColor.YELLOW + "(" + staffOnline.size() + ")" + ChatColor.GOLD + ": " + String.join(ChatColor.GRAY + ", ", staffOnline));
+                concatListView.put(server, serverName + String.join(ChatColor.GRAY + ", ", concatServerPlayers));
+                concatListView.put("Staff online", ChatColor.GOLD + "Staff online: " + ChatColor.YELLOW + "(" + staffOnline.size() + ")" + ChatColor.GOLD + ": " + String.join(ChatColor.GRAY + ", ", staffOnline));
+                fullListView.put(server, serverName + String.join(ChatColor.GRAY + ", " + allServerPlayers));
+                fullListView.put("Staff online", ChatColor.GOLD + "Staff online: " + ChatColor.YELLOW + "(" + staffOnline.size() + ")" + ChatColor.GOLD + ": " + String.join(ChatColor.GRAY + ", ", staffOnline));
             }
         }
     }
