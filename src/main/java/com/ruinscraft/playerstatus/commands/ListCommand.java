@@ -65,11 +65,13 @@ public class ListCommand implements CommandExecutor {
 
             List<String> staffOnline = new ArrayList<>();
 
+            main:
             for (String server : players.keySet()) {
                 String serverName = ChatColor.GOLD + server + ChatColor.YELLOW + " (" + players.get(server).size() + ")" + ChatColor.GOLD + ": ";
                 List<String> concatServerPlayers = new ArrayList<>();
                 List<String> allServerPlayers = new ArrayList<>();
 
+                players:
                 for (String username : players.get(server)) {
                     /* Formatting */
                     String group = null;
@@ -79,48 +81,54 @@ public class ListCommand implements CommandExecutor {
                         e.printStackTrace();
                     }
 
+                    if (group == null) {
+                        group = "unknown";
+                    }
+
+                    formatting:
                     switch (group) {
                         case "owner":
                             username = ChatColor.DARK_RED + username;
                             staffOnline.add(username);
-                            break;
+                            break formatting;
                         case "admin":
                             username = ChatColor.GOLD + username;
                             staffOnline.add(username);
-                            break;
+                            break formatting;
                         case "moderator":
                             username = ChatColor.BLUE + username;
                             staffOnline.add(username);
-                            break;
+                            break formatting;
                         case "helper":
                             username = ChatColor.AQUA + username;
                             staffOnline.add(username);
                             break;
                         case "builder":
                             username = ChatColor.GREEN + username;
-                            break;
+                            break formatting;
                         default:
                             if (group.startsWith("vip") || group.contains("sponsor")) {
                                 username = ChatColor.DARK_PURPLE + username;
                             } else {
                                 username = ChatColor.GRAY + username;
                             }
-                            break;
+                            break formatting;
                     }
                     /* End formatting */
 
                     /* Generate lists */
-                    allServerPlayers.add(username);
-                    if (concatServerPlayers.size() <= MAX_PLAYERS_IN_LIST_PER_SERVER) {
+                    if (concatServerPlayers.size() < MAX_PLAYERS_IN_LIST_PER_SERVER) {
                         concatServerPlayers.add(username);
-                    } else if (concatServerPlayers.size() >= MAX_PLAYERS_IN_LIST_PER_SERVER) {
+                    } else if (concatServerPlayers.size() == MAX_PLAYERS_IN_LIST_PER_SERVER) {
                         concatServerPlayers.add(ChatColor.GRAY + "and " + (players.get(server).size() - MAX_PLAYERS_IN_LIST_PER_SERVER) + " more");
                     }
+
+                    allServerPlayers.add(username);
                 }
 
                 concatListView.put(server, serverName + String.join(ChatColor.GRAY + ", ", concatServerPlayers));
                 concatListView.put("Staff online", ChatColor.GOLD + "Staff online: " + ChatColor.YELLOW + "(" + staffOnline.size() + ")" + ChatColor.GOLD + ": " + String.join(ChatColor.GRAY + ", ", staffOnline));
-                fullListView.put(server, serverName + String.join(ChatColor.GRAY + ", " + allServerPlayers));
+                fullListView.put(server, serverName + String.join(ChatColor.GRAY + ", ", allServerPlayers));
                 fullListView.put("Staff online", ChatColor.GOLD + "Staff online: " + ChatColor.YELLOW + "(" + staffOnline.size() + ")" + ChatColor.GOLD + ": " + String.join(ChatColor.GRAY + ", ", staffOnline));
             }
         }
