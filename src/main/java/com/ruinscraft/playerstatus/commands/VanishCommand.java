@@ -7,10 +7,26 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-public class VanishCommand implements CommandExecutor {
+public class VanishCommand implements CommandExecutor, Listener {
+
+    @EventHandler
+    public void onPickup(PlayerPickupItemEvent event) {
+        final Player player = event.getPlayer();
+        if (player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+            PotionEffect effect = player.getPotionEffect(PotionEffectType.INVISIBILITY);
+            if (effect.getDuration() > 100000) {
+                if (player.hasPermission("ruinscraft.command.vanish")) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {

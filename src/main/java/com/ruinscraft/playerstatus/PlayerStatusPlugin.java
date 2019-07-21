@@ -74,12 +74,15 @@ public class PlayerStatusPlugin extends JavaPlugin {
             }
         });
 
+        VanishCommand vanishCommand = new VanishCommand();
+
         /* Register listeners */
         getServer().getPluginManager().registerEvents(new JoinListener(), this);
+        getServer().getPluginManager().registerEvents(vanishCommand, this);
 
         /* Register commands */
         getCommand("list").setExecutor(new ListCommand());
-        getCommand("vanish").setExecutor(new VanishCommand());
+        getCommand("vanish").setExecutor(vanishCommand);
         getCommand("mblist").setExecutor(new MBListCommand());
     }
 
