@@ -21,6 +21,8 @@ public class RedisPlayerStorage implements PlayerStorage {
         String address = redisSection.getString("address");
         int port = redisSection.getInt("port");
         JedisPoolConfig config = new JedisPoolConfig();
+        config.setMaxIdle(32);
+        config.setMaxTotal(64);
         pool = new JedisPool(config, address, port == 0 ? Protocol.DEFAULT_PORT : port);
     }
 
