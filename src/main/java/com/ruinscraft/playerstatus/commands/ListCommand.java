@@ -31,12 +31,6 @@ public class ListCommand implements CommandExecutor {
         boolean showAll = label.toLowerCase().equals("listeveryonewhoisontheserver");
         Multimap<String, String> players = PlayerStatusPlugin.get().getAPI().getOnline();
         for (String server : players.keySet()) {
-            /* Check if the player has permission to view the server */
-            if (!players.get(server).contains(sender.getName()) // allow if they are currently on the server
-                    && !sender.hasPermission("slashserver." + server)) {
-                continue;
-            }
-
             if (showAll) {
                 sender.sendMessage(fullListView.get(server));
             } else {
